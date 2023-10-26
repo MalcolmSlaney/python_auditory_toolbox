@@ -215,7 +215,7 @@ def FMPoints(len, freq, fmFreq=6, fmAmp=None, fs=22050):
 
   kmax = int(freq*(len/fs))
   points = np.arange(kmax)
-  points = (fs/freq)*(points-(fmAmp/(2*np.pi*fmFreq))*np.sin(2*np/np.pi*(fmFreq/freq)*points))
+  points = (fs/freq)*(points-(fmAmp/(2*np.pi*fmFreq))*np.sin(2*np.pi*(fmFreq/freq)*points))
   return points
 
 
@@ -258,7 +258,7 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   if isinstance(pitch, (int, float)):
     points = np.arange(0, len, sampleRate/pitch)
   else:
-    points = np.sorted(np.asarray(pitch))
+    points = np.sort(np.asarray(pitch))
     points = points[points < len-1]
   indices = np.floor(points).astype(int)
 

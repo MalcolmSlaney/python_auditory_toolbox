@@ -16,6 +16,7 @@ class ClusterTests(absltest.TestCase):
     cfArray = pat.ERBSpace(lowFreq = low_freq, highFreq = high_freq, 
                            n = num_channels)
     self.assertLen(cfArray, num_channels)
+    # Make sure low and high CF's are where we expect them to be.
     self.assertAlmostEqual(cfArray[-1], low_freq)
     self.assertLess(cfArray[0], high_freq)
 
@@ -28,6 +29,7 @@ class ClusterTests(absltest.TestCase):
     fcoefs = pat.MakeERBFilters(fs, num_chan, low_freq)
     self.assertLen(fcoefs, 10)
 
+    # Test all the filter coefficient array shapes
     A0, A11, A12, A13, A14, A2, B0, B1, B2, gain = fcoefs
     self.assertEqual(A0.shape, (num_chan,))
     self.assertEqual(A11.shape, (num_chan,))
@@ -88,6 +90,7 @@ class ClusterTests(absltest.TestCase):
     np.testing.assert_equal(no_output[0], np.arange(36))
 
   def test_mfcc(self):
+    # Put a tone into MFCC and make sure it's in the right spot in the reconstruction.
     sample_rate = 16000.0
     f0 = 2000
     tone = np.sin(2*np.pi*f0*np.arange(4000)/sample_rate)
@@ -96,6 +99,50 @@ class ClusterTests(absltest.TestCase):
     fftSize = 512  # From the MFCC source code
     freqs = np.arange(fftSize)*sample_rate/fftSize
     self.assertEqual(f0/sample_rate*fftSize, np.argmax(np.sum(freqrecon, axis=1)))
+
+  def test_fm_points  (self):
+    base_pitch = 160
+    sample_rate = 16000
+    fmfreq = 10
+    fmamp = 20
+    points = pat.FMPoints(100000, base_pitch, fmfreq, fmamp, 16000)
+
+    # Make sure the average glottal pulse locations is 1 over the pitch
+    d_points = points[1:] - points[:-1]
+    self.assertAlmostEqual(np.mean(d_points), sample_rate/base_pitch, delta=1)
+
+    # Make sure the frequency deviation is as expected.
+    # ToDo(malcolm): Test the deviation, it's not right!
+
+  def test_make_vowel(self):
+    def local_peaks(x):
+      i = np.argwhere(np.logical_and(x[:-2] < x[1:-1],
+                                    x[2:] < x[1:-1])) + 1 
+      return [j[0] for j in i]
+
+    test_seq = local_peaks(np.array([1,2,3,2,1,1,2,2,3,4,1]))
+    np.testing.assert_equal(test_seq, np.array([2, 9]))
+
+    def vowel_peaks(vowel):
+      """Synthesize a vowel and find the frequencies of the spectral peaks"""
+      sample_rate = 16000
+      vowel = pat.MakeVowel(1024, [1,], sample_rate, vowel)
+      spectrum = 20*np.log10(np.abs(np.fft.fft(vowel)))
+      freqs = np.arange(len(vowel))*sample_rate/len(vowel)
+      return freqs[local_peaks(spectrum)[:3]]
+    
+    # Make sure the spectrum of each vowel has peaks in the right spots.
+    bin_width = 16000/1024
+    np.testing.assert_allclose(vowel_peaks('a'),  
+                               np.array([730, 1090, 2440]), 
+                               atol=bin_width)
+    np.testing.assert_allclose(vowel_peaks('i'),  
+                               np.array([270, 2290, 3010]), 
+                               atol=bin_width)
+    np.testing.assert_allclose(vowel_peaks('u'),  
+                               np.array([300, 870, 2240]), 
+                               atol=bin_width)
+
 
 if __name__=="__main__": 
   absltest.main()
