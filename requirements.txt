@@ -1,3 +1,4 @@
 absl-py
+matplotlib
 numpy
 scipy

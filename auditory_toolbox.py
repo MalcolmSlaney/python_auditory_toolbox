@@ -1,38 +1,43 @@
+"""A python port of portions of the Matlab Auditory Toolbox.
+"""
 import math
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 
 from typing import List
 
 
-def ERBSpace(lowFreq: float = 100, highFreq: float = 44100/4,
+def ErbSpace(low_freq: float = 100, high_freq: float = 44100/4,
              n: int = 100) -> np.ndarray:
   """This function computes an array of N frequencies uniformly spaced between
-  highFreq and lowFreq on an ERB scale.  N is set to 100 if not specified.
+  high_freq and low_freq on an erb scale.  N is set to 100 if not specified.
 
-  See also linspace, logspace, MakeERBCoeffs, MakeERBFilters.
+  See also linspace, logspace, MakeerbCoeffs, MakeErbFilters.
 
-  For a definition of ERB, see Moore, B. C. J., and Glasberg, B. R. (1983).
+  For a definition of erb, see Moore, B. C. J., and Glasberg, B. R. (1983).
   "Suggested formulae for calculating auditory-filter bandwidths and
   excitation patterns," J. Acoust. Soc. Am. 74, 750-753.
   """
 
   #  Change the following three parameters if you wish to use a different
-  #  ERB scale.  Must change in MakeERBCoeffs too.
-  EarQ = 9.26449				# Glasberg and Moore Parameters
-  minBW = 24.7
-  order = 1
+  #  erb scale.  Must change in MakeerbCoeffs too.
+  ear_q = 9.26449				# Glasberg and Moore Parameters
+  min_bw = 24.7
 
-  # All of the followFreqing expressions are derived in Apple TR #35, "An
+  # All of the follow_freqing expressions are derived in Apple TR #35, "An
   # Efficient Implementation of the Patterson-Holdsworth Cochlear
   # Filter Bank."  See pages 33-34.
-  cfArray = -(EarQ*minBW) + np.exp(np.arange(1, 1+n)*(-np.log(highFreq + EarQ*minBW) +
-                                                 np.log(lowFreq + EarQ*minBW))/n) * (highFreq + EarQ*minBW)
-  return cfArray
+  cf_array = (-(ear_q*min_bw) +
+             np.exp(np.arange(1, 1+n)*
+                    (-np.log(high_freq + ear_q*min_bw) +
+                     np.log(low_freq + ear_q*min_bw))/n) * (high_freq +
+                                                             ear_q*min_bw))
+  return cf_array
 
 
-def MakeERBFilters(fs: float, numChannels: int, lowFreq: float) -> np.ndarray:
+def MakeErbFilters(fs: float, num_channels: int, low_freq: float) -> np.ndarray:
   """This function computes the filter coefficients for a bank of
   Gammatone filters.  These filters were defined by Patterson and
   Holdworth for simulating the cochlea.
@@ -41,13 +46,13 @@ def MakeERBFilters(fs: float, numChannels: int, lowFreq: float) -> np.ndarray:
   of the filter arrays contains the coefficients for four second order
   filters.  The transfer function for these four filters share the same
   denominator (poles) but have different numerators (zeros).  All of these
-  coefficients are assembled into one vector that the ERBFilterBank
+  coefficients are assembled into one vector that the ErbFilterBank
   can take apart to implement the filter.
 
-  The filter bank contains "numChannels" channels that extend from
-  half the sampling rate (fs) to "lowFreq".  Alternatively, if the numChannels
+  The filter bank contains "num_channels" channels that extend from
+  half the sampling rate (fs) to "low_freq".  Alternatively, if the num_channels
   input argument is a vector, then the values of this vector are taken to
-  be the center frequency of each desired filter.  (The lowFreq argument is
+  be the center frequency of each desired filter.  (The low_freq argument is
   ignored in this case.)
 
   Note this implementation fixes a problem in the original code by
@@ -62,8 +67,8 @@ def MakeERBFilters(fs: float, numChannels: int, lowFreq: float) -> np.ndarray:
 
   Execute the following code to evaluate the frequency
   response of a 10 channel filterbank.
-    fcoefs = MakeERBFilters(16000,10,100)
-    y = ERBFilterBank([1 zeros(1,511)], fcoefs)
+    fcoefs = MakeErbFilters(16000,10,100)
+    y = ErbFilterBank([1 zeros(1,511)], fcoefs)
    	resp = 20*log10(abs(fft(y')))
    	freqScale = (0:511)/512*16000
   	semilogx(freqScale(1:255),resp(1:255,:))
@@ -74,85 +79,85 @@ def MakeERBFilters(fs: float, numChannels: int, lowFreq: float) -> np.ndarray:
   (c) 1998 Interval Research Corporation
   """
 
-  T = 1/fs
-  if isinstance(numChannels, int):
-    cf = ERBSpace(lowFreq, fs/2, numChannels)
+  t = 1/fs
+  if isinstance(num_channels, int):
+    cf = ErbSpace(low_freq, fs/2, num_channels)
   else:
-    cf = numChannels
+    cf = num_channels
 
   # So equations below match the original Matlab syntax
   pi = np.pi
-  abs = np.abs
+  abs = np.abs  # pylint: disable=redefined-builtin
   sqrt = np.sqrt
   sin = np.sin
   cos = np.cos
   exp = np.exp
   i = np.array([1j], dtype=np.csingle)
 
-  # Change the followFreqing three parameters if you wish to use a different
-  # ERB scale.  Must change in ERBSpace too.
-  EarQ = 9.26449				#  Glasberg and Moore Parameters
-  minBW = 24.7
+  # Change the follow_freqing three parameters if you wish to use a different
+  # erb scale.  Must change in ErbSpace too.
+  ear_q = 9.26449				#  Glasberg and Moore Parameters
+  min_bw = 24.7
   order = 1
 
-  ERB = ((cf/EarQ)**order + minBW**order)**(1/order)
-  B=1.019*2*pi*ERB
+  erb = ((cf/ear_q)**order + min_bw**order)**(1/order)
+  b=1.019*2*pi*erb
 
-  A0 = T
-  A2 = 0
-  B0 = 1
-  B1 = -2*cos(2*cf*pi*T)/exp(B*T)
-  B2 = exp(-2*B*T)
+  a0 = t
+  a2 = 0
+  b0 = 1
+  b1 = -2*cos(2*cf*pi*t)/exp(b*t)
+  b2 = exp(-2*b*t)
 
-  A11 = -(2*T*cos(2*cf*pi*T)/exp(B*T) + 2*sqrt(3+2**1.5)*T*sin(2*cf*pi*T)/
-      exp(B*T))/2
-  A12 = -(2*T*cos(2*cf*pi*T)/exp(B*T) - 2*sqrt(3+2**1.5)*T*sin(2*cf*pi*T)/
-      exp(B*T))/2
-  A13 = -(2*T*cos(2*cf*pi*T)/exp(B*T) + 2*sqrt(3-2**1.5)*T*sin(2*cf*pi*T)/
-      exp(B*T))/2
-  A14 = -(2*T*cos(2*cf*pi*T)/exp(B*T) - 2*sqrt(3-2**1.5)*T*sin(2*cf*pi*T)/
-      exp(B*T))/2
+  a11 = -(2*t*cos(2*cf*pi*t)/exp(b*t) + 2*sqrt(3+2**1.5)*t*sin(2*cf*pi*t)/
+      exp(b*t))/2
+  a12 = -(2*t*cos(2*cf*pi*t)/exp(b*t) - 2*sqrt(3+2**1.5)*t*sin(2*cf*pi*t)/
+      exp(b*t))/2
+  a13 = -(2*t*cos(2*cf*pi*t)/exp(b*t) + 2*sqrt(3-2**1.5)*t*sin(2*cf*pi*t)/
+      exp(b*t))/2
+  a14 = -(2*t*cos(2*cf*pi*t)/exp(b*t) - 2*sqrt(3-2**1.5)*t*sin(2*cf*pi*t)/
+      exp(b*t))/2
 
-  gain = abs((-2*exp(4*i*cf*pi*T)*T +
-                  2*exp(-(B*T) + 2*i*cf*pi*T)*T*
-                          (cos(2*cf*pi*T) - sqrt(3 - 2**(3/2))*
-                            sin(2*cf*pi*T))) *
-            (-2*exp(4*i*cf*pi*T)*T +
-              2*exp(-(B*T) + 2*i*cf*pi*T)*T*
-                (cos(2*cf*pi*T) + sqrt(3 - 2**(3/2)) *
-                sin(2*cf*pi*T)))*
-            (-2*exp(4*i*cf*pi*T)*T +
-              2*exp(-(B*T) + 2*i*cf*pi*T)*T*
-                (cos(2*cf*pi*T) -
-                sqrt(3 + 2**(3/2))*sin(2*cf*pi*T))) *
-            (-2*exp(4*i*cf*pi*T)*T + 2*exp(-(B*T) + 2*i*cf*pi*T)*T*
-            (cos(2*cf*pi*T) + sqrt(3 + 2**(3/2))*sin(2*cf*pi*T))) /
-            (-2 / exp(2*B*T) - 2*exp(4*i*cf*pi*T) +
-            2*(1 + exp(4*i*cf*pi*T))/exp(B*T))**4)
+  gain = abs((-2*exp(4*i*cf*pi*t)*t +
+                  2*exp(-(b*t) + 2*i*cf*pi*t)*t*
+                          (cos(2*cf*pi*t) - sqrt(3 - 2**(3/2))*
+                            sin(2*cf*pi*t))) *
+            (-2*exp(4*i*cf*pi*t)*t +
+              2*exp(-(b*t) + 2*i*cf*pi*t)*t*
+                (cos(2*cf*pi*t) + sqrt(3 - 2**(3/2)) *
+                sin(2*cf*pi*t)))*
+            (-2*exp(4*i*cf*pi*t)*t +
+              2*exp(-(b*t) + 2*i*cf*pi*t)*t*
+                (cos(2*cf*pi*t) -
+                sqrt(3 + 2**(3/2))*sin(2*cf*pi*t))) *
+            (-2*exp(4*i*cf*pi*t)*t + 2*exp(-(b*t) + 2*i*cf*pi*t)*t*
+            (cos(2*cf*pi*t) + sqrt(3 + 2**(3/2))*sin(2*cf*pi*t))) /
+            (-2 / exp(2*b*t) - 2*exp(4*i*cf*pi*t) +
+            2*(1 + exp(4*i*cf*pi*t))/exp(b*t))**4)
 
   allfilts = np.ones(len(cf))
-  fcoefs = [A0*allfilts, A11, A12, A13, A14, A2*allfilts, B0*allfilts, B1, B2, gain]
+  fcoefs = [a0*allfilts, a11, a12, a13, a14, a2*allfilts,
+            b0*allfilts, b1, b2, gain]
   return fcoefs
 
 
-def ERBFilterBank(x: np.ndarray, fcoefs: List[np.ndarray]) -> np.ndarray:
-  [A0, A11, A12, A13, A14, A2, B0, B1, B2, gain] = fcoefs
-  x_len = len(x)
-  n_chan = A0.shape[0]
-  assert n_chan == A11.shape[0]
-  assert n_chan == A12.shape[0]
-  assert n_chan == A13.shape[0]
-  assert n_chan == A14.shape[0]
-  assert n_chan == B0.shape[0]
-  assert n_chan == B1.shape[0]
+def ErbFilterBank(x: np.ndarray, fcoefs: List[np.ndarray]) -> np.ndarray:
+  [a0, a11, a12, a13, a14, a2, b0, b1, b2, gain] = fcoefs
+  n_chan = a0.shape[0]
+  assert n_chan == a11.shape[0]
+  assert n_chan == a12.shape[0]
+  assert n_chan == a13.shape[0]
+  assert n_chan == a14.shape[0]
+  assert n_chan == b0.shape[0]
+  assert n_chan == b1.shape[0]
   assert n_chan == gain.shape[0]
 
-  sos = np.stack((np.stack([A0/gain,  A0,   A0, A0], axis=1),
-                  np.stack([A11/gain, A12, A13, A14], axis=1),
-                  np.stack([A2/gain,  A2,   A2, A2], axis=1),
-                  np.stack([B0, B0, B0, B0], axis=1),
-                  np.stack([B1, B1, B1, B1], axis=1),
-                  np.stack([B2, B2, B2, B2], axis=1)),
+  sos = np.stack((np.stack([a0/gain,  a0,   a0, a0], axis=1),
+                  np.stack([a11/gain, a12, a13, a14], axis=1),
+                  np.stack([a2/gain,  a2,   a2, a2], axis=1),
+                  np.stack([b0, b0, b0, b0], axis=1),
+                  np.stack([b1, b1, b1, b1], axis=1),
+                  np.stack([b2, b2, b2, b2], axis=1)),
                 axis=2)
 
   all_y = None
@@ -164,65 +169,69 @@ def ERBFilterBank(x: np.ndarray, fcoefs: List[np.ndarray]) -> np.ndarray:
   return all_y
 
 
-def CorrelogramFrame(data: np.ndarray, picWidth: int,
-                     start: int = 0, winLen: int = 0) -> np.ndarray:
+def CorrelogramFrame(data: np.ndarray, pic_width: int,
+                     start: int = 0, win_len: int = 0) -> np.ndarray:
   channels, data_len = data.shape
-  if not winLen:
-    winLen = data_len
+  if not win_len:
+    win_len = data_len
 
-  pic = np.zeros((channels, start + winLen), dtype=data.dtype)
-  fftSize = int(2**np.ceil(np.log2(max(picWidth, winLen))))
+  pic = np.zeros((channels, start + win_len), dtype=data.dtype)
+  fft_size = int(2**np.ceil(np.log2(max(pic_width, win_len))))
 
   start = max(0, start)
-  last = min(data_len, start+winLen)
+  last = min(data_len, start+win_len)
   a = .54
   b = -.46
   wr = math.sqrt(64/256)
-  phi = np.pi/winLen
-  ws = 2*wr/np.sqrt(4*a*a+2*b*b)*(a + b*np.cos(2*np.pi*(np.arange(winLen))/winLen + phi))
+  phi = np.pi/win_len
+  ws = 2*wr/np.sqrt(4*a*a+2*b*b)*(
+    a + b*np.cos(2*np.pi*(np.arange(win_len))/win_len + phi))
 
-  pic = np.zeros((channels, picWidth), dtype=data.dtype)
+  pic = np.zeros((channels, pic_width), dtype=data.dtype)
   for i in range(channels):
-    f = np.zeros(fftSize)
+    f = np.zeros(fft_size)
     f[:last-start] = data[i, start:last] * ws[:last-start]
     f = np.fft.fft(f)
     f = np.fft.ifft(f*np.conj(f))
-    pic[i, :] = np.real(f[:picWidth])
+    pic[i, :] = np.real(f[:pic_width])
     if pic[i, 0] > 0 and pic[i, 0] > pic[i, 1] and pic[i,0] > pic[i, 2]:
       pic[i,:] = pic[i,:] / np.sqrt(pic[i,0])
     else:
-      pic[i,:] = np.zeros(picWidth)
+      pic[i,:] = np.zeros(pic_width)
   return pic
 
 
-def FMPoints(len, freq, fmFreq=6, fmAmp=None, fs=22050):
-  """points=FMPoints(len, freq, fmFreq, fmAmp, fs)
+def FMPoints(sample_len, freq, fm_freq=6, fm_amp=None, fs=22050):
+  """points=FMPoints(sample_len, freq, fm_freq, fm_amp, fs)
   # Generates (fractional) sample locations for frequency-modulated impulses
-  #     len         = number of samples
+  #     sample_len         = number of samples
   #     freq        = pitch frequency (Hz)
-  #     fmFreq      = vibrato frequency (Hz)  (defaults to 6 Hz)
-  #     fmAmp       = max change in pitch  (defaults to 5% of freq)
+  #     fm_freq      = vibrato frequency (Hz)  (defaults to 6 Hz)
+  #     fm_amp       = max change in pitch  (defaults to 5% of freq)
   #     fs          = sample frequency     (defaults to 22254.545454 samples/s)
   #
-  # Basic formula: phase angle = 2*pi*freq*t + (fmAmp/fmFreq)*sin(2*pi*fmFreq*t)
+  # Basic formula: phase angle = 2*pi*freq*t + 
+  #                         (fm_amp/fm_freq)*sin(2*pi*fm_freq*t)
   #     k-th zero crossing approximately at sample number
-  #     (fs/freq)*(k - (fmAmp/(2*pi*fmFreq))*sin(2*pi*k*(fmFreq/freq)))
+  #     (fs/freq)*(k - (fm_amp/(2*pi*fm_freq))*sin(2*pi*k*(fm_freq/freq)))
 
   # (c) 1998 Interval Research Corporation
   """
-  if fmAmp is None:
-    fmAmp = 0.05*freq
+  if fm_amp is None:
+    fm_amp = 0.05*freq
 
-  kmax = int(freq*(len/fs))
+  kmax = int(freq*(sample_len/fs))
   points = np.arange(kmax)
-  points = (fs/freq)*(points-(fmAmp/(2*np.pi*fmFreq))*np.sin(2*np.pi*(fmFreq/freq)*points))
+  points = (fs/freq)*(points-(
+    fm_amp/(2*np.pi*fm_freq))*np.sin(2*np.pi*(fm_freq/freq)*points))
   return points
 
 
-def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
+def MakeVowel(sample_len, pitch, sample_rate, f1=0, f2=0, f3=0):
   """
-  #  MakeVowel(len, pitch [, sampleRate, f1, f2, f3]) - Make a vowel with
-  #    "len" samples and the given pitch.  The sample rate defaults to
+  #  MakeVowel(sample_len, pitch [, sample_rate, f1, f2, f3]) - 
+  #  Make a vowel with
+  #    "sample_len" samples and the given pitch.  The sample rate defaults to
   #    be 22254.545454 Hz (the native Mactinosh Sampling Rate).  The
   #    formant frequencies are f1, f2 & f3.  Some common vowels are
   #               Vowel       f1      f2      f3
@@ -244,22 +253,22 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   """
   if isinstance(f1, str):
     if f1 == 'a' or f1 == '/a/':
-      f1=730; f2=1090; f3=2440
+      f1, f2, f3 = (730, 1090, 2440)
     elif f1 == 'i' or f1 == '/i/':
-      f1=270; f2=2290; f3=3010
+      f1, f2, f3 = (270, 2290, 3010)
     elif f1 == 'u' or f1 == '/u/':
-      f1=300; f2=870; f3=2240
+      f1, f2, f3 = (300, 870, 2240)
 
 
-  #  GlottalPulses(pitch, fs, len) - Generate a stream of
+  #  GlottalPulses(pitch, fs, sample_len) - Generate a stream of
   #    glottal pulses with the given pitch (in Hz) and sampling
-  #    frequency (sampleRate).  A vector of the requested length is returned.
-  y = np.zeros(len, float)
+  #    frequency (sample_rate).  A vector of the requested length is returned.
+  y = np.zeros(sample_len, float)
   if isinstance(pitch, (int, float)):
-    points = np.arange(0, len, sampleRate/pitch)
+    points = np.arange(0, sample_len, sample_rate/pitch)
   else:
     points = np.sort(np.asarray(pitch))
-    points = points[points < len-1]
+    points = points[points < sample_len-1]
   indices = np.floor(points).astype(int)
 
   #  Use a triangular approximation to an impulse function.  The important
@@ -268,10 +277,10 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   y[indices+1] = points-indices
 
   #  GlottalFilter(x,fs) - Filter an impulse train and simulate the glottal
-  #    transfer function.  The sampling interval (sampleRate) is given in Hz.
+  #    transfer function.  The sampling interval (sample_rate) is given in Hz.
   #    The filtering performed by this function is two first-order filters
   #    at 250Hz.
-  a = np.exp(-250*2*np.pi/sampleRate)
+  a = np.exp(-250*2*np.pi/sample_rate)
   #y=filter([1,0,-1],[1,-2*a,a*a],y);      #  Not as good as one below....
   y = signal.lfilter([1],[1,0,-a*a],y)
 
@@ -280,7 +289,7 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   #    by f and the bandwidth of the formant is a constant 50Hz.  The
   #    sampling frequency in Hz is given by fs.
   if f1 > 0:
-    cft = f1/sampleRate
+    cft = f1/sample_rate
     bw = 50
     q = f1/bw
     rho = np.exp(-np.pi * cft / q)
@@ -294,7 +303,7 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   #    by f and the bandwidth of the formant is a constant 50Hz.  The
   #    sampling frequency in Hz is given by fs.
   if f2 > 0:
-    cft = f2/sampleRate
+    cft = f2/sample_rate
     bw = 50
     q = f2/bw
     rho = np.exp(-np.pi * cft / q)
@@ -308,7 +317,7 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   #    by f and the bandwidth of the formant is a constant 50Hz.  The
   #    sampling frequency in Hz is given by fs.
   if f3 > 0:
-    cft = f3/sampleRate
+    cft = f3/sample_rate
     bw = 50
     q = f3/bw
     rho = np.exp(-np.pi * cft / q)
@@ -319,23 +328,24 @@ def MakeVowel(len, pitch, sampleRate, f1=0, f2=0, f3=0):
   return y
 
 
-def CorrelogramArray(data, sr=16000, frameRate=12, width=256):
-  channels, len = data.shape
-  frameIncrement = int(sr/frameRate)
-  frameCount = int((len-width)/frameIncrement) + 1
+def CorrelogramArray(data, sr=16000, frame_rate=12, width=256):
+  _, sample_len = data.shape
+  frame_increment = int(sr/frame_rate)
+  frame_count = int((sample_len-width)/frame_increment) + 1
   movie = None
-  for i in range(frameCount):
-    start = i*frameIncrement
-    frame = CorrelogramFrame(data, width, start, frameIncrement*4)
+  for i in range(frame_count):
+    start = i*frame_increment
+    frame = CorrelogramFrame(data, width, start, frame_increment*4)
     if movie is None:
-      movie = np.zeros((frameCount, frame.shape[0], frame.shape[1]), dtype=float)
+      movie = np.zeros((frame_count, frame.shape[0],
+                        frame.shape[1]), dtype=float)
     movie[i, :, :] = frame
   return movie
 
 
-#  mfcc - Mel frequency cepstrum coefficient analysis.
+#  Mfcc - Mel frequency cepstrum coefficient analysis.
 #   [ceps,freqresp,fb,fbrecon,freqrecon] = ...
-#			mfcc(input, samplingRate, [frameRate])
+#			Mfcc(input, sampling_rate, [frame_rate])
 # Find the cepstral coefficients (ceps) corresponding to the
 # input.  Four other quantities are optionally returned that
 # represent:
@@ -348,131 +358,134 @@ def CorrelogramArray(data, sr=16000, frameRate=12, width=256):
 #  -- Malcolm Slaney, August 1993
 # Modified a bit to make testing an algorithm easier... 4/15/94
 # Fixed Cosine Transform (indices of cos() were swapped) - 5/26/95
-# Added optional frameRate argument - 6/8/95
+# Added optional frame_rate argument - 6/8/95
 # Added proper filterbank reconstruction using inverse DCT - 10/27/95
 # Added filterbank inversion to reconstruct spectrum - 11/1/95
 
 # (c) 1998 Interval Research Corporation
 
-def mfcc(input, samplingRate=16000, frameRate=100, debug=False):
-  # [r, c] = input.shape
-  # if r > c:
-  #   input=input.T
-
+def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   #	Filter bank parameters
-  lowestFrequency = 133.3333
-  linearFilters = 13
-  linearSpacing = 66.66666666
-  logFilters = 27
-  logSpacing = 1.0711703
-  fftSize = 512
-  cepstralCoefficients = 13
-  windowSize = 400
-  windowSize = 256;		# Standard says 400, but 256 makes more sense
+  lowest_frequency = 133.3333
+  linear_filters = 13
+  linear_spacing = 66.66666666
+  log_filters = 27
+  log_spacing = 1.0711703
+  fft_size = 512
+  cepstral_coefficients = 13
+  window_size = 400
+  window_size = 256		# Standard says 400, but 256 makes more sense
           # Really should be a function of the sample
-          # rate (and the lowestFrequency) and the
+          # rate (and the lowest_frequency) and the
           # frame rate.
 
   # Keep this around for later....
-  totalFilters = linearFilters + logFilters
+  total_filters = linear_filters + log_filters
 
   # Now figure the band edges.  Interesting frequencies are spaced
-  # by linearSpacing for a while, then go logarithmic.  First figure
+  # by linear_spacing for a while, then go logarithmic.  First figure
   # all the interesting frequencies.  Lower, center, and upper band
   # edges are all consequtive interesting frequencies.
 
-  freqs = np.zeros(totalFilters+2)
-  freqs[:linearFilters] = lowestFrequency + np.arange(linearFilters)*linearSpacing
-  freqs[linearFilters:totalFilters+2] = freqs[linearFilters-1] * logSpacing**np.arange(1, logFilters+3)
+  freqs = np.zeros(total_filters+2)
+  freqs[:linear_filters] = (lowest_frequency +
+                           np.arange(linear_filters)*linear_spacing)
+  freqs[linear_filters:total_filters+2] = (
+    freqs[linear_filters-1] * log_spacing**np.arange(1, log_filters+3))
   # print('freqs:', freqs)
-  lower = freqs[:totalFilters]
-  center = freqs[1:totalFilters+1]
-  upper = freqs[2:totalFilters+2]
+  lower = freqs[:total_filters]
+  center = freqs[1:total_filters+1]
+  upper = freqs[2:total_filters+2]
 
   # We now want to combine FFT bins so that each filter has unit
   # weight, assuming a triangular weighting function.  First figure
   # out the height of the triangle, then we can figure out each
   # frequencies contribution
-  mfccFilterWeights = np.zeros((totalFilters,fftSize))
-  triangleHeight = 2/(upper-lower)
-  fftFreqs = np.arange(fftSize)/fftSize*samplingRate
+  mfcc_filter_weights = np.zeros((total_filters,fft_size))
+  triangle_height = 2/(upper-lower)
+  fft_freqs = np.arange(fft_size)/fft_size*sampling_rate
 
-  for chan in range(totalFilters):
-    mfccFilterWeights[chan,:] = (
-        np.logical_and(fftFreqs > lower[chan], fftFreqs <= center[chan]) *
-        triangleHeight[chan]*(fftFreqs-lower[chan])/(center[chan]-lower[chan]) +
-        np.logical_and(fftFreqs > center[chan], fftFreqs < upper[chan]) *
-        triangleHeight[chan]*(upper[chan]-fftFreqs)/(upper[chan]-center[chan]))
+  for chan in range(total_filters):
+    mfcc_filter_weights[chan,:] = (
+        np.logical_and(fft_freqs > lower[chan], fft_freqs <= center[chan]) *
+        triangle_height[chan]*(fft_freqs-lower[chan])/(center[chan]-
+                                                       lower[chan]) +
+        np.logical_and(fft_freqs > center[chan], fft_freqs < upper[chan]) *
+        triangle_height[chan]*(upper[chan]-fft_freqs)/(upper[chan]-
+                                                       center[chan]))
 
   if debug:
-    plt.semilogx(fftFreqs,mfccFilterWeights.T)
-    #axis([lower(1) upper(totalFilters) 0 max(max(mfccFilterWeights))])
+    plt.semilogx(fft_freqs,mfcc_filter_weights.T)
+    #axis([lower(1) upper(total_filters) 0 max(max(mfcc_filter_weights))])
 
-  hamWindow = 0.54 - 0.46*np.cos(2*np.pi*np.arange(windowSize)/windowSize)
+  ham_window = 0.54 - 0.46*np.cos(2*np.pi*np.arange(window_size)/window_size)
 
-  if False:					# Window it like ComplexSpectrum
-    windowStep = samplingRate/frameRate
+  if False:					# Window it like ComplexSpectrum  # pylint: disable=using-constant-test
+    window_step = sampling_rate/frame_rate
     a = .54
     b = -.46
-    wr = np.sqrt(windowStep/windowSize)
-    phi = np.pi/windowSize
-    hamWindow = 2*wr/np.sqrt(4*a*a+2*b*b)* (a + b*np.cos(2*np.pi*np.arange(windowSize)/windowSize + phi))
+    wr = np.sqrt(window_step/window_size)
+    phi = np.pi/window_size
+    ham_window = (2*wr/np.sqrt(4*a*a+2*b*b)*
+                 (a + b*np.cos(2*np.pi*np.arange(window_size)/window_size +
+                               phi)))
 
   # Figure out Discrete Cosine Transform.  We want a matrix
-  # dct(i,j) which is totalFilters x cepstralCoefficients in size.
+  # dct(i,j) which is total_filters x cepstral_coefficients in size.
   # The i,j component is given by
-  #                cos( i * (j+0.5)/totalFilters pi )
+  #                cos( i * (j+0.5)/total_filters pi )
   # where we have assumed that i and j start at 0.
 
-  cepstralIndices = np.reshape(np.arange(cepstralCoefficients), (cepstralCoefficients, 1))
-  filterIndices = np.reshape(2*np.arange(0, totalFilters)+1, (1, totalFilters))
-  cosTerm = np.cos(np.matmul(cepstralIndices, filterIndices)*np.pi/2/totalFilters)
+  cepstral_indices = np.reshape(np.arange(cepstral_coefficients),
+                               (cepstral_coefficients, 1))
+  filter_indices = np.reshape(2*np.arange(0, total_filters)+1,
+                              (1, total_filters))
+  cos_term = np.cos(np.matmul(cepstral_indices,
+                             filter_indices)*np.pi/2/total_filters)
 
-  mfccDCTMatrix = 1/np.sqrt(totalFilters/2)*cosTerm
-  # mfccDCTMatrix = 1/np.sqrt(totalFilters/2)*np.cos(np.arange(cepstralCoefficients)) *
-  #         (2*(np.arange(totalFilters))+1) * np.pi/2/totalFilters)
-  mfccDCTMatrix[0,:] = mfccDCTMatrix[0,:] * np.sqrt(2)/2
+  mfcc_dct_matrix = 1/np.sqrt(total_filters/2)*cos_term
+  mfcc_dct_matrix[0,:] = mfcc_dct_matrix[0,:] * np.sqrt(2)/2
 
   if debug:
-    plt.imshow(mfccDCTMatrix)
+    plt.imshow(mfcc_dct_matrix)
     plt.xlabel('Filter Coefficient')
     plt.ylabel('Cepstral Coefficient')
 
   # Filter the input with the preemphasis filter.  Also figure how
   # many columns of data we will end up with.
-  if True:
-    preEmphasized = signal.lfilter([1 -.97], 1, input)
+  if True:   # pylint: disable=using-constant-test
+    pre_emphasized = signal.lfilter([1 -.97], 1, input_signal)
   else:
-    preEmphasized = input
+    pre_emphasized = input_signal
 
-  windowStep = samplingRate/frameRate
-  cols = int((len(input)-windowSize)/windowStep)
+  window_step = sampling_rate/frame_rate
+  cols = int((len(input_signal)-window_size)/window_step)
 
   # Allocate all the space we need for the output arrays.
-  ceps = np.zeros((cepstralCoefficients, cols))
-  freqresp = np.zeros((fftSize//2, cols))
-  fb = np.zeros((totalFilters, cols))
+  ceps = np.zeros((cepstral_coefficients, cols))
+  freqresp = np.zeros((fft_size//2, cols))
+  fb = np.zeros((total_filters, cols))
 
   # Invert the filter bank center frequencies.  For each FFT bin
   # we want to know the exact position in the filter bank to find
   # the original frequency response.  The next block of code finds the
   # integer and fractional sampling positions.
-  if True:
-    fr = np.arange(fftSize//2)/(fftSize/2)*samplingRate/2
+  if True:  # pylint: disable=using-constant-test
+    fr = np.arange(fft_size//2)/(fft_size/2)*sampling_rate/2
     j = 0
-    for i in np.arange(fftSize//2):
+    for i in np.arange(fft_size//2):
       if fr[i] > center[j+1]:
         j = j + 1
-      j = min(j, totalFilters-2)
-      # if j > totalFilters-2:
-      #   j = totalFilters-1
-      fr[i] = min(totalFilters-1-.0001,
+      j = min(j, total_filters-2)
+      # if j > total_filters-2:
+      #   j = total_filters-1
+      fr[i] = min(total_filters-1-.0001,
                   max(0,j + (fr[i]-center[j])/(center[j+1]-center[j])))
     fri = fr.astype(int)
     frac = fr - fri
 
-    freqrecon = np.zeros((fftSize//2, cols))
-  fbrecon = np.zeros((totalFilters, cols))
+    freqrecon = np.zeros((fft_size//2, cols))
+  fbrecon = np.zeros((total_filters, cols))
   # Ok, now let's do the processing.  For each chunk of data:
   #    * Window the data with a hamming window,
   #    * Shift it into FFT order,
@@ -481,29 +494,31 @@ def mfcc(input, samplingRate=16000, frameRate=100, debug=False):
   #    * Find the log base 10,
   #    * Find the cosine transform to reduce dimensionality.
   for start in np.arange(cols):
-    first = round(start*windowStep)        # Round added by Malcolm
-    last = round(first + windowSize)
-    fftData = np.zeros(fftSize)
-    fftData[:windowSize] = preEmphasized[first:last]*hamWindow
-    fftMag = np.abs(np.fft.fft(fftData))
-    earMag = np.log10(np.matmul(mfccFilterWeights, fftMag.T))
+    first = round(start*window_step)        # Round added by Malcolm
+    last = round(first + window_size)
+    fft_data = np.zeros(fft_size)
+    fft_data[:window_size] = pre_emphasized[first:last]*ham_window
+    fft_mag = np.abs(np.fft.fft(fft_data))
+    ear_mag = np.log10(np.matmul(mfcc_filter_weights, fft_mag.T))
 
-    ceps[:,start] = np.matmul(mfccDCTMatrix, earMag)
-    freqresp[:,start] = fftMag[:fftSize//2].T
-    fb[:,start] = earMag
-    fbrecon[:,start] = np.matmul(mfccDCTMatrix[:cepstralCoefficients,:].T, ceps[:,start])
+    ceps[:,start] = np.matmul(mfcc_dct_matrix, ear_mag)
+    freqresp[:,start] = fft_mag[:fft_size//2].T
+    fb[:,start] = ear_mag
+    fbrecon[:,start] = np.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T,
+                                 ceps[:,start])
 
-    if True:
+    if True:  # pylint: disable=using-constant-test
       f10 = 10**fbrecon[:,start]
-      freqrecon[:,start] = samplingRate/fftSize * (f10[fri]*(1-frac) + f10[fri+1]*frac)
+      freqrecon[:,start] = sampling_rate/fft_size * (f10[fri]*(1-frac) +
+                                                   f10[fri+1]*frac)
 
   # OK, just to check things, let's also reconstruct the original FB
   # output.  We do this by multiplying the cepstral data by the transpose
   # of the original DCT matrix.  This all works because we were careful to
   # scale the DCT matrix so it was orthonormal.
-  if True:
-    fbrecon = np.matmul(mfccDCTMatrix[:cepstralCoefficients,:].T, ceps)
-  #	imagesc(mt(:,1:cepstralCoefficients)*mfccDCTMatrix)
+  if True:  # pylint: disable=using-constant-test
+    fbrecon = np.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T, ceps)
+  #	imagesc(mt(:,1:cepstral_coefficients)*mfcc_dct_matrix)
   return ceps,freqresp,fb,fbrecon,freqrecon
 
 

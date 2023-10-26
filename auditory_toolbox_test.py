@@ -1,24 +1,22 @@
-import sys
-from collections import Counter
-
+"""Code to test the auditory toolbox."""
 from absl.testing import absltest
 import numpy as np
-from scipy import signal
 
 import auditory_toolbox as pat
 
 
-class ClusterTests(absltest.TestCase):
+class AuditoryToolboxTests(absltest.TestCase):
+  """Test cases for auditory toolbox."""
   def test_erb_space(self):
     low_freq = 100.0
     high_freq = 44100/4.0
     num_channels = 100
-    cfArray = pat.ERBSpace(lowFreq = low_freq, highFreq = high_freq, 
+    cf_array = pat.ErbSpace(low_freq = low_freq, high_freq = high_freq,
                            n = num_channels)
-    self.assertLen(cfArray, num_channels)
+    self.assertLen(cf_array, num_channels)
     # Make sure low and high CF's are where we expect them to be.
-    self.assertAlmostEqual(cfArray[-1], low_freq)
-    self.assertLess(cfArray[0], high_freq)
+    self.assertAlmostEqual(cf_array[-1], low_freq)
+    self.assertLess(cf_array[0], high_freq)
 
   def test_make_erb_filters(self):
     # Ten channel ERB Filterbank.  Make sure return has the right size.
@@ -26,31 +24,33 @@ class ClusterTests(absltest.TestCase):
     fs = 16000
     low_freq = 100
     num_chan = 10
-    fcoefs = pat.MakeERBFilters(fs, num_chan, low_freq)
+    fcoefs = pat.MakeErbFilters(fs, num_chan, low_freq)
     self.assertLen(fcoefs, 10)
 
     # Test all the filter coefficient array shapes
-    A0, A11, A12, A13, A14, A2, B0, B1, B2, gain = fcoefs
-    self.assertEqual(A0.shape, (num_chan,))
-    self.assertEqual(A11.shape, (num_chan,))
-    self.assertEqual(A12.shape, (num_chan,))
-    self.assertEqual(A13.shape, (num_chan,))
-    self.assertEqual(A14.shape, (num_chan,))
-    self.assertEqual(B0.shape, (num_chan,))
-    self.assertEqual(B1.shape, (num_chan,))
+    a0, a11, a12, a13, a14, a2, b0, b1, b2, gain = fcoefs
+    self.assertEqual(a0.shape, (num_chan,))
+    self.assertEqual(a11.shape, (num_chan,))
+    self.assertEqual(a12.shape, (num_chan,))
+    self.assertEqual(a13.shape, (num_chan,))
+    self.assertEqual(a14.shape, (num_chan,))
+    self.assertEqual(a2.shape, (num_chan,))
+    self.assertEqual(b0.shape, (num_chan,))
+    self.assertEqual(b1.shape, (num_chan,))
+    self.assertEqual(b2.shape, (num_chan,))
     self.assertEqual(gain.shape, (num_chan,))
 
   def test_erb_filterbank(self):
     fs = 16000
     low_freq = 100
     num_chan = 10
-    fcoefs = pat.MakeERBFilters(fs, num_chan, low_freq)
+    fcoefs = pat.MakeErbFilters(fs, num_chan, low_freq)
 
     impulse_len = 512
     x = np.zeros(impulse_len)
     x[0] = 1
 
-    y = pat.ERBFilterBank(x, fcoefs)
+    y = pat.ErbFilterBank(x, fcoefs)
     self.assertEqual(y.shape, (num_chan, impulse_len))
 
     resp = 20*np.log10(np.abs(np.fft.fft(y.T, axis=0)))
@@ -73,14 +73,14 @@ class ClusterTests(absltest.TestCase):
     fs = 16000
     low_freq = 100
     num_chan = 64
-    fcoefs = pat.MakeERBFilters(fs, num_chan, low_freq)
+    fcoefs = pat.MakeErbFilters(fs, num_chan, low_freq)
 
     # Make harmonic input signal
     s = 0
     for h in range(1, 10):
       s = s + np.sin(2*np.pi*np.arange(impulse_len)/200*h)
 
-    y = pat.ERBFilterBank(s, fcoefs)
+    y = pat.ErbFilterBank(s, fcoefs)
     frame_width = 256
     frame = pat.CorrelogramFrame(y, frame_width)
     self.assertEqual(frame.shape, (num_chan, frame_width))
@@ -90,15 +90,16 @@ class ClusterTests(absltest.TestCase):
     np.testing.assert_equal(no_output[0], np.arange(36))
 
   def test_mfcc(self):
-    # Put a tone into MFCC and make sure it's in the right spot in the reconstruction.
+    # Put a tone into MFCC and make sure it's in the right
+    # spot in the reconstruction.
     sample_rate = 16000.0
     f0 = 2000
     tone = np.sin(2*np.pi*f0*np.arange(4000)/sample_rate)
-    [ceps,freqresp,fb,fbrecon,freqrecon]= pat.mfcc(tone,sample_rate,100);
+    [_,_,_,_,freqrecon]= pat.Mfcc(tone,sample_rate,100)
 
-    fftSize = 512  # From the MFCC source code
-    freqs = np.arange(fftSize)*sample_rate/fftSize
-    self.assertEqual(f0/sample_rate*fftSize, np.argmax(np.sum(freqrecon, axis=1)))
+    fft_size = 512  # From the MFCC source code
+    self.assertEqual(f0/sample_rate*fft_size,
+                     np.argmax(np.sum(freqrecon, axis=1)))
 
   def test_fm_points  (self):
     base_pitch = 160
@@ -117,7 +118,7 @@ class ClusterTests(absltest.TestCase):
   def test_make_vowel(self):
     def local_peaks(x):
       i = np.argwhere(np.logical_and(x[:-2] < x[1:-1],
-                                    x[2:] < x[1:-1])) + 1 
+                                    x[2:] < x[1:-1])) + 1
       return [j[0] for j in i]
 
     test_seq = local_peaks(np.array([1,2,3,2,1,1,2,2,3,4,1]))
@@ -130,19 +131,19 @@ class ClusterTests(absltest.TestCase):
       spectrum = 20*np.log10(np.abs(np.fft.fft(vowel)))
       freqs = np.arange(len(vowel))*sample_rate/len(vowel)
       return freqs[local_peaks(spectrum)[:3]]
-    
+
     # Make sure the spectrum of each vowel has peaks in the right spots.
     bin_width = 16000/1024
-    np.testing.assert_allclose(vowel_peaks('a'),  
-                               np.array([730, 1090, 2440]), 
+    np.testing.assert_allclose(vowel_peaks('a'),
+                               np.array([730, 1090, 2440]),
                                atol=bin_width)
-    np.testing.assert_allclose(vowel_peaks('i'),  
-                               np.array([270, 2290, 3010]), 
+    np.testing.assert_allclose(vowel_peaks('i'),
+                               np.array([270, 2290, 3010]),
                                atol=bin_width)
-    np.testing.assert_allclose(vowel_peaks('u'),  
-                               np.array([300, 870, 2240]), 
+    np.testing.assert_allclose(vowel_peaks('u'),
+                               np.array([300, 870, 2240]),
                                atol=bin_width)
 
 
-if __name__=="__main__": 
+if __name__ == '__main__':
   absltest.main()
