@@ -77,8 +77,9 @@ class AuditoryToolboxTests(absltest.TestCase):
 
     # Make harmonic input signal
     s = 0
+    pitch_lag = 200
     for h in range(1, 10):
-      s = s + np.sin(2*np.pi*np.arange(impulse_len)/200*h)
+      s = s + np.sin(2*np.pi*np.arange(impulse_len)/pitch_lag*h)
 
     y = pat.ErbFilterBank(s, fcoefs)
     frame_width = 256
@@ -88,6 +89,11 @@ class AuditoryToolboxTests(absltest.TestCase):
     # Make sure the top channels have no output.
     no_output = np.where(np.sum(frame, 1) < 0.2)
     np.testing.assert_equal(no_output[0], np.arange(36))
+
+    # Make sure the first peak (after 0 lag) is at the pitch lag
+    summary_correlogram = np.sum(frame, 0)
+    summary_correlogram[:20] = 0
+    self.assertEqual(np.argmax(summary_correlogram), pitch_lag)
 
   def test_mfcc(self):
     # Put a tone into MFCC and make sure it's in the right
