@@ -20,11 +20,12 @@ has been supersceded by [CARFAC](https://github.com/google/carfac).
 
 ## Examples
 Here are the frequency responses for a 10-channel ERB gammatone filtebank.
-![Gammatone (ERB) Filter Reponse](examples/GammatoneFilterResponse.png))
+![Gammatone (ERB) Filter Reponse](examples/GammatoneFilterResponse.png)
 
 Here is an example of a correlogram, here with a number of harmonic examples 
 that demonstrate the correlogram representation.
-<video src="examples/DudaVowelsCorrelogram.mp4" controls title="Correlogram Example"></video>
+<video src="examples/DudaVowelsCorrelogram.mp4" controls title="Correlogram Example"></video> 
+or via [YouTube](https://youtu.be/kTqhfxHPcVo)
 
 MFCC (mel-frequency cepstral coefficients) is a classic speech representation
 that was often used in (pre-DNN) speech recognizers.  It converts the original spectrogram, shown here, 
