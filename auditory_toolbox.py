@@ -340,7 +340,8 @@ def CorrelogramArray(data, sr=16000, frame_rate=12, width=256):
     movie[i, :, :] = frame
   return movie
 
-def CorrelogramPitch(correlogram, width, sr=22254.54, low_pitch=0, high_pitch=20000):
+def CorrelogramPitch(correlogram, width, sr=22254.54,
+                     low_pitch=0, high_pitch=20000):
   """Compute the summary of a correlogram to find the pitch.
 
   pitch=CorrelogramPitch(correlogram, width, sr, low_pitch, high_pitch 
@@ -354,7 +355,7 @@ def CorrelogramPitch(correlogram, width, sr=22254.54, low_pitch=0, high_pitch=20
   else:
     drop_high = width
 
-  frames, channels, pixels = correlogram.shape
+  frames = correlogram.shape[0]
 
   pitch = np.zeros(frames)
   salience = np.zeros(frames)
@@ -362,10 +363,10 @@ def CorrelogramPitch(correlogram, width, sr=22254.54, low_pitch=0, high_pitch=20
     # Get one frame from the correlogram and compute
     # the sum (as a function of time lag) across all channels.
     summary = np.sum(correlogram[j, :, :], axis=0)
-    zeroLag = summary[0]
+    zero_lag = summary[0]
     # Now we need to find the first pitch past the peak at zero
     # lag.  The following lines smooth the summary pitch a bit, then
-    # look for the first point where the summary goes back up.  
+    # look for the first point where the summary goes back up.
     # Everything up to this point is zeroed out.
     window_length = 16
     sumfilt = signal.lfilter(np.ones(window_length), [1,] , summary)
@@ -380,7 +381,7 @@ def CorrelogramPitch(correlogram, width, sr=22254.54, low_pitch=0, high_pitch=20
     p = np.argmax(summary)
     if p > 0:
       pitch[j] = sr/float(p)
-    salience[j] = summary[p]/zeroLag
+    salience[j] = summary[p]/zero_lag
 
   return pitch,salience
 

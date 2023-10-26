@@ -99,9 +99,9 @@ class AuditoryToolboxTests(absltest.TestCase):
     sample_len = 20000
     sample_rate = 22254
     pitch_center = 120
-    u = pat.MakeVowel(sample_len, pat.FMPoints(sample_len, pitch_center), 
+    u = pat.MakeVowel(sample_len, pat.FMPoints(sample_len, pitch_center),
                       sample_rate, 'u')
-  
+
     low_freq = 60
     num_chan = 100
     fcoefs = pat.MakeErbFilters(sample_rate, num_chan, low_freq)
@@ -113,7 +113,7 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertAlmostEqual(np.mean(pitch), pitch_center, delta=2)
     self.assertAlmostEqual(np.min(pitch), pitch_center-6, delta=2)
     self.assertAlmostEqual(np.max(pitch), pitch_center+6, delta=2)
-
+    np.testing.assert_array_less(0.8, sal[:40])
 
   def test_mfcc(self):
     # Put a tone into MFCC and make sure it's in the right
