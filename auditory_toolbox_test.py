@@ -3,6 +3,7 @@ from collections import Counter
 
 from absl.testing import absltest
 import numpy as np
+from scipy import signal
 
 import auditory_toolbox as pat
 
@@ -85,6 +86,16 @@ class ClusterTests(absltest.TestCase):
     # Make sure the top channels have no output.
     no_output = np.where(np.sum(frame, 1) < 0.2)
     np.testing.assert_equal(no_output[0], np.arange(36))
+
+  def test_mfcc(self):
+    sample_rate = 16000.0
+    f0 = 2000
+    tone = np.sin(2*np.pi*f0*np.arange(4000)/sample_rate)
+    [ceps,freqresp,fb,fbrecon,freqrecon]= pat.mfcc(tone,sample_rate,100);
+
+    fftSize = 512  # From the MFCC source code
+    freqs = np.arange(fftSize)*sample_rate/fftSize
+    self.assertEqual(f0/sample_rate*fftSize, np.argmax(np.sum(freqrecon, axis=1)))
 
 if __name__=="__main__": 
   absltest.main()
