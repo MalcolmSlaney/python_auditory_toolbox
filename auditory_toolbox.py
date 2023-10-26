@@ -76,7 +76,6 @@ def MakeErbFilters(fs: float, num_channels: int, low_freq: float) -> np.ndarray:
   	xlabel('Frequency (Hz)') ylabel('Filter Response (dB)')
 
   Rewritten by Malcolm Slaney@Interval.  June 11, 1998.
-  (c) 1998 Interval Research Corporation
   """
 
   t = 1/fs
@@ -202,20 +201,20 @@ def CorrelogramFrame(data: np.ndarray, pic_width: int,
 
 
 def FMPoints(sample_len, freq, fm_freq=6, fm_amp=None, fs=22050):
-  """points=FMPoints(sample_len, freq, fm_freq, fm_amp, fs)
-  # Generates (fractional) sample locations for frequency-modulated impulses
-  #     sample_len         = number of samples
-  #     freq        = pitch frequency (Hz)
-  #     fm_freq      = vibrato frequency (Hz)  (defaults to 6 Hz)
-  #     fm_amp       = max change in pitch  (defaults to 5% of freq)
-  #     fs          = sample frequency     (defaults to 22254.545454 samples/s)
-  #
-  # Basic formula: phase angle = 2*pi*freq*t + 
-  #                         (fm_amp/fm_freq)*sin(2*pi*fm_freq*t)
-  #     k-th zero crossing approximately at sample number
-  #     (fs/freq)*(k - (fm_amp/(2*pi*fm_freq))*sin(2*pi*k*(fm_freq/freq)))
+  """Generate impulse train corresponding to a vibrato.
 
-  # (c) 1998 Interval Research Corporation
+  points=FMPoints(sample_len, freq, fm_freq, fm_amp, fs)
+  Generates (fractional) sample locations for frequency-modulated impulses
+      sample_len         = number of samples
+      freq        = pitch frequency (Hz)
+      fm_freq      = vibrato frequency (Hz)  (defaults to 6 Hz)
+      fm_amp       = max change in pitch  (defaults to 5% of freq)
+      fs          = sample frequency     (defaults to 22254.545454 samples/s)
+ 
+  Basic formula: phase angle = 2*pi*freq*t + 
+                          (fm_amp/fm_freq)*sin(2*pi*fm_freq*t)
+      k-th zero crossing approximately at sample number
+      (fs/freq)*(k - (fm_amp/(2*pi*fm_freq))*sin(2*pi*k*(fm_freq/freq)))
   """
   if fm_amp is None:
     fm_amp = 0.05*freq
@@ -228,28 +227,27 @@ def FMPoints(sample_len, freq, fm_freq=6, fm_amp=None, fs=22050):
 
 
 def MakeVowel(sample_len, pitch, sample_rate, f1=0, f2=0, f3=0):
-  """
-  #  MakeVowel(sample_len, pitch [, sample_rate, f1, f2, f3]) - 
-  #  Make a vowel with
-  #    "sample_len" samples and the given pitch.  The sample rate defaults to
-  #    be 22254.545454 Hz (the native Mactinosh Sampling Rate).  The
-  #    formant frequencies are f1, f2 & f3.  Some common vowels are
-  #               Vowel       f1      f2      f3
-  #                /a/        730    1090    2440
-  #                /i/        270    2290    3010
-  #                /u/        300     870    2240
-  #
-  # The pitch variable can either be a scalar indicating the actual
-  #      pitch frequency, or an array of impulse locations. Using an
-  #      array of impulses allows this routine to compute vowels with
-  #      varying pitch.
-  #
-  # Alternatively, f1 can be replaced with one of the following strings
-  #      'a', 'i', 'u' and the appropriate formant frequencies are
-  #      automatically selected.
-  #  Modified by R. Duda, 3/13/94
+  """Synthesize an artificial vowel using formant filters.
 
-  # (c) 1998 Interval Research Corporation
+   MakeVowel(sample_len, pitch [, sample_rate, f1, f2, f3]) - 
+   Make a vowel with
+     "sample_len" samples and the given pitch.  The sample rate defaults to
+     be 22254.545454 Hz (the native Mactinosh Sampling Rate).  The
+     formant frequencies are f1, f2 & f3.  Some common vowels are
+                Vowel       f1      f2      f3
+                 /a/        730    1090    2440
+                 /i/        270    2290    3010
+                 /u/        300     870    2240
+
+  The pitch variable can either be a scalar indicating the actual
+       pitch frequency, or an array of impulse locations. Using an
+       array of impulses allows this routine to compute vowels with
+       varying pitch.
+
+  Alternatively, f1 can be replaced with one of the following strings
+       'a', 'i', 'u' and the appropriate formant frequencies are
+       automatically selected.
+   Modified by R. Duda, 3/13/94
   """
   if isinstance(f1, str):
     if f1 == 'a' or f1 == '/a/':
@@ -343,28 +341,28 @@ def CorrelogramArray(data, sr=16000, frame_rate=12, width=256):
   return movie
 
 
-#  Mfcc - Mel frequency cepstrum coefficient analysis.
-#   [ceps,freqresp,fb,fbrecon,freqrecon] = ...
-#			Mfcc(input, sampling_rate, [frame_rate])
-# Find the cepstral coefficients (ceps) corresponding to the
-# input.  Four other quantities are optionally returned that
-# represent:
-#	the detailed fft magnitude (freqresp) used in MFCC calculation,
-#	the mel-scale filter bank output (fb)
-#	the filter bank output by inverting the cepstrals with a cosine
-#		transform (fbrecon),
-#	the smooth frequency response by interpolating the fb reconstruction
-#		(freqrecon)
-#  -- Malcolm Slaney, August 1993
-# Modified a bit to make testing an algorithm easier... 4/15/94
-# Fixed Cosine Transform (indices of cos() were swapped) - 5/26/95
-# Added optional frame_rate argument - 6/8/95
-# Added proper filterbank reconstruction using inverse DCT - 10/27/95
-# Added filterbank inversion to reconstruct spectrum - 11/1/95
-
-# (c) 1998 Interval Research Corporation
 
 def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
+  """Mfcc - Mel frequency cepstrum coefficient analysis.
+
+  [ceps,freqresp,fb,fbrecon,freqrecon] = ...
+		Mfcc(input, sampling_rate, [frame_rate])
+  Find the cepstral coefficients (ceps) corresponding to the
+  input.  Four other quantities are optionally returned that
+  represent:
+ 	the detailed fft magnitude (freqresp) used in MFCC calculation,
+	the mel-scale filter bank output (fb)
+	the filter bank output by inverting the cepstrals with a cosine
+		transform (fbrecon),
+	the smooth frequency response by interpolating the fb reconstruction
+		(freqrecon)
+   -- Malcolm Slaney, August 1993
+  Modified a bit to make testing an algorithm easier... 4/15/94
+  Fixed Cosine Transform (indices of cos() were swapped) - 5/26/95
+  Added optional frame_rate argument - 6/8/95
+  Added proper filterbank reconstruction using inverse DCT - 10/27/95
+  Added filterbank inversion to reconstruct spectrum - 11/1/95
+  """
   #	Filter bank parameters
   lowest_frequency = 133.3333
   linear_filters = 13
