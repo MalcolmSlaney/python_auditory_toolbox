@@ -95,6 +95,26 @@ class AuditoryToolboxTests(absltest.TestCase):
     summary_correlogram[:20] = 0
     self.assertEqual(np.argmax(summary_correlogram), pitch_lag)
 
+  def test_correlogram_pitch(self):
+    sample_len = 20000
+    sample_rate = 22254
+    pitch_center = 120
+    u = pat.MakeVowel(sample_len, pat.FMPoints(sample_len, pitch_center), 
+                      sample_rate, 'u')
+  
+    low_freq = 60
+    num_chan = 100
+    fcoefs = pat.MakeErbFilters(sample_rate, num_chan, low_freq)
+    coch = pat.ErbFilterBank(u, fcoefs)
+    cor = pat.CorrelogramArray(coch,sample_rate,50,256)
+    [pitch,sal] = pat.CorrelogramPitch(cor, 256, sample_rate,100,200)
+
+    # Make sure center and overall pitch deviation are as expected.
+    self.assertAlmostEqual(np.mean(pitch), pitch_center, delta=2)
+    self.assertAlmostEqual(np.min(pitch), pitch_center-6, delta=2)
+    self.assertAlmostEqual(np.max(pitch), pitch_center+6, delta=2)
+
+
   def test_mfcc(self):
     # Put a tone into MFCC and make sure it's in the right
     # spot in the reconstruction.

@@ -279,7 +279,7 @@ def MakeVowel(sample_len, pitch, sample_rate, f1=0, f2=0, f3=0):
   #    The filtering performed by this function is two first-order filters
   #    at 250Hz.
   a = np.exp(-250*2*np.pi/sample_rate)
-  #y=filter([1,0,-1],[1,-2*a,a*a],y);      #  Not as good as one below....
+  #y=filter([1,0,-1],[1,-2*a,a*a],y)      #  Not as good as one below....
   y = signal.lfilter([1],[1,0,-a*a],y)
 
   #  FormantFilter(input, f, fs) - Filter an input sequence to model one
@@ -340,7 +340,49 @@ def CorrelogramArray(data, sr=16000, frame_rate=12, width=256):
     movie[i, :, :] = frame
   return movie
 
+def CorrelogramPitch(correlogram, width, sr=22254.54, low_pitch=0, high_pitch=20000):
+  """Compute the summary of a correlogram to find the pitch.
 
+  pitch=CorrelogramPitch(correlogram, width, sr, low_pitch, high_pitch 
+  computes the pitch of a correlogram sequence by finding the time lag
+  with the largest correlation energy. 
+  """
+
+  drop_low = int(sr/high_pitch)
+  if low_pitch > 0:
+    drop_high = int(min(width,math.ceil(sr/low_pitch)))
+  else:
+    drop_high = width
+
+  frames, channels, pixels = correlogram.shape
+
+  pitch = np.zeros(frames)
+  salience = np.zeros(frames)
+  for j in range(frames):
+    # Get one frame from the correlogram and compute
+    # the sum (as a function of time lag) across all channels.
+    summary = np.sum(correlogram[j, :, :], axis=0)
+    zeroLag = summary[0]
+    # Now we need to find the first pitch past the peak at zero
+    # lag.  The following lines smooth the summary pitch a bit, then
+    # look for the first point where the summary goes back up.  
+    # Everything up to this point is zeroed out.
+    window_length = 16
+    sumfilt = signal.lfilter(np.ones(window_length), [1,] , summary)
+    sumdif = sumfilt[1:width] - sumfilt[:width-1]
+    sumdif[:window_length] = 0
+    valleys = np.argwhere(sumdif>0)
+    summary[:int(valleys[0, 0])] = 0
+    summary[1:drop_low] = 0
+    summary[drop_high:] = 0
+    # plt.plot(summary)
+    # Now find the location of the biggest peak and call this the pitch
+    p = np.argmax(summary)
+    if p > 0:
+      pitch[j] = sr/float(p)
+    salience[j] = summary[p]/zeroLag
+
+  return pitch,salience
 
 def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   """Mfcc - Mel frequency cepstrum coefficient analysis.
