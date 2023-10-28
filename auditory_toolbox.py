@@ -4,6 +4,7 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.matlib as matlib
 from scipy import signal
 
 from typing import List
@@ -174,7 +175,6 @@ def CorrelogramFrame(data: np.ndarray, pic_width: int,
   if not win_len:
     win_len = data_len
 
-  pic = np.zeros((channels, start + win_len), dtype=data.dtype)
   fft_size = int(2**np.ceil(np.log2(max(pic_width, win_len))))
 
   start = max(0, start)
@@ -187,16 +187,18 @@ def CorrelogramFrame(data: np.ndarray, pic_width: int,
     a + b*np.cos(2*np.pi*(np.arange(win_len))/win_len + phi))
 
   pic = np.zeros((channels, pic_width), dtype=data.dtype)
-  for i in range(channels):
-    f = np.zeros(fft_size)
-    f[:last-start] = data[i, start:last] * ws[:last-start]
-    f = np.fft.fft(f)
-    f = np.fft.ifft(f*np.conj(f))
-    pic[i, :] = np.real(f[:pic_width])
-    if pic[i, 0] > 0 and pic[i, 0] > pic[i, 1] and pic[i,0] > pic[i, 2]:
-      pic[i,:] = pic[i,:] / np.sqrt(pic[i,0])
-    else:
-      pic[i,:] = np.zeros(pic_width)
+  f = np.zeros((channels, fft_size), dtype=data.dtype)
+  f[:, :last-start] = data[:, start:last] * ws[:last-start]
+  f = np.fft.fft(f, axis=1)
+  f = np.fft.ifft(f*np.conj(f), axis=1)
+  pic = np.real(f[:, :pic_width])
+  good_rows = np.logical_and(  # Make sure first column is bigger than the rest.
+    pic[:, 0] > 0,
+    np.logical_and(pic[:, 0] > pic[:, 1], pic[:, 0] > pic[:, 2]))
+  pic[good_rows,: ] = pic[good_rows, :] / matlib.repmat(
+    np.sqrt(pic[good_rows, :1]), 1, pic_width)   # Broadcast scaling term
+  pic[~good_rows, :] = np.zeros(pic_width)
+
   return pic
 
 
