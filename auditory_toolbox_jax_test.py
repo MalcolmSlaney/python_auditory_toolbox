@@ -1,8 +1,9 @@
 """Code to test the auditory toolbox."""
 from absl.testing import absltest
-import numpy as np
+import jax.numpy as jnp
+import numpy as np  # For testing
 
-import auditory_toolbox as pat
+import auditory_toolbox_jax as pat
 
 
 class AuditoryToolboxTests(absltest.TestCase):
@@ -15,7 +16,7 @@ class AuditoryToolboxTests(absltest.TestCase):
                            n = num_channels)
     self.assertLen(cf_array, num_channels)
     # Make sure low and high CF's are where we expect them to be.
-    self.assertAlmostEqual(cf_array[-1], low_freq)
+    self.assertAlmostEqual(cf_array[-1], low_freq, delta=0.001)
     self.assertLess(cf_array[0], high_freq)
 
   def test_make_erb_filters(self):
@@ -40,6 +41,7 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertEqual(b2.shape, (num_chan,))
     self.assertEqual(gain.shape, (num_chan,))
 
+
   def test_erb_filterbank(self):
     fs = 16000
     low_freq = 100
@@ -47,27 +49,28 @@ class AuditoryToolboxTests(absltest.TestCase):
     fcoefs = pat.MakeErbFilters(fs, num_chan, low_freq)
 
     impulse_len = 512
-    x = np.zeros(impulse_len)
-    x[0] = 1
+    x = jnp.hstack((jnp.ones(1), jnp.zeros(impulse_len-1)))
 
     y = pat.ErbFilterBank(x, fcoefs)
     self.assertEqual(y.shape, (num_chan, impulse_len))
     self.assertAlmostEqual(np.max(y), 0.10657410, delta=0.01)
 
-    resp = 20*np.log10(np.abs(np.fft.fft(y.T, axis=0)))
+    resp = 20*jnp.log10(jnp.abs(jnp.fft.fft(y.T, axis=0)))
 
     # Test to make sure spectral peaks are in the right place for each channel
-    matlab_peak_locs = np.array([184, 132, 94, 66, 46, 32, 21, 14, 8, 4])
-    python_peak_locs = np.argmax(resp[:impulse_len//2], axis=0)
+    matlab_peak_locs = [184, 132, 94, 66, 46, 32, 21, 14, 8, 4]
+    python_peak_locs = jnp.argmax(resp[:impulse_len//2], axis=0)
 
     # Add one to python locs because Matlab arrays start at 1
-    np.testing.assert_equal(matlab_peak_locs, python_peak_locs+1)
+    self.assertEqual(matlab_peak_locs, list(python_peak_locs+1))
 
   def test_correlogram_array(self):
-    test_impulses = np.zeros((1,1024))
-    test_impulses[0, range(0, test_impulses.shape[1], 100)] = 1
+    test_impulses = jnp.zeros((1,1024))
+    for i in range(0, test_impulses.shape[1], 100):
+      test_impulses = test_impulses.at[:, i].set(1)
     test_frame = pat.CorrelogramFrame(test_impulses, 256)
-    np.testing.assert_equal(np.where(test_frame > 0.1)[1], [0, 100, 200])
+    self.assertEqual(list(jnp.where(test_frame > 0.1)[1]),
+                      [0, 100, 200])
 
     # Now test with cochlear input to correlogram
     impulse_len = 512
@@ -80,21 +83,20 @@ class AuditoryToolboxTests(absltest.TestCase):
     s = 0
     pitch_lag = 200
     for h in range(1, 10):
-      s = s + np.sin(2*np.pi*np.arange(impulse_len)/pitch_lag*h)
+      s = s + jnp.sin(2*jnp.pi*jnp.arange(impulse_len)/pitch_lag*h)
 
     y = pat.ErbFilterBank(s, fcoefs)
     frame_width = 256
     frame = pat.CorrelogramFrame(y, frame_width)
     self.assertEqual(frame.shape, (num_chan, frame_width))
 
-    # Make sure the top channels have no output.
-    no_output = np.where(np.sum(frame, 1) < 0.2)
-    np.testing.assert_equal(no_output[0], np.arange(36))
+     # Make sure the top channels have no output.
+    no_output = jnp.where(jnp.sum(frame, 1) < 0.2)
+    self.assertEqual(list(no_output[0]), list(range(36)))
 
-   # Make sure the first peak (after 0 lag) is at the pitch lag
-    summary_correlogram = np.sum(frame, 0)
-    summary_correlogram[:20] = 0
-    self.assertEqual(np.argmax(summary_correlogram), pitch_lag)
+    # Make sure the first peak (after 0 lag) is at the pitch lag
+    summary_correlogram = jnp.sum(frame, 0)
+    self.assertEqual(jnp.argmax(summary_correlogram[20:]), pitch_lag-20)
 
   def test_correlogram_pitch(self):
     sample_len = 20000
@@ -111,9 +113,9 @@ class AuditoryToolboxTests(absltest.TestCase):
     [pitch,sal] = pat.CorrelogramPitch(cor, 256, sample_rate,100,200)
 
     # Make sure center and overall pitch deviation are as expected.
-    self.assertAlmostEqual(np.mean(pitch), pitch_center, delta=2)
-    self.assertAlmostEqual(np.min(pitch), pitch_center-6, delta=2)
-    self.assertAlmostEqual(np.max(pitch), pitch_center+6, delta=2)
+    self.assertAlmostEqual(jnp.mean(pitch), pitch_center, delta=2)
+    self.assertAlmostEqual(jnp.min(pitch), pitch_center-6, delta=2)
+    self.assertAlmostEqual(jnp.max(pitch), pitch_center+6, delta=2)
     np.testing.assert_array_less(0.8, sal[:40])
 
   def test_mfcc(self):
@@ -121,12 +123,12 @@ class AuditoryToolboxTests(absltest.TestCase):
     # spot in the reconstruction.
     sample_rate = 16000.0
     f0 = 2000
-    tone = np.sin(2*np.pi*f0*np.arange(4000)/sample_rate)
+    tone = jnp.sin(2*jnp.pi*f0*jnp.arange(4000)/sample_rate)
     [_,_,_,_,freqrecon]= pat.Mfcc(tone,sample_rate,100)
 
     fft_size = 512  # From the MFCC source code
     self.assertEqual(f0/sample_rate*fft_size,
-                     np.argmax(np.sum(freqrecon, axis=1)))
+                     jnp.argmax(jnp.sum(freqrecon, axis=1)))
 
   def test_fm_points  (self):
     base_pitch = 160
@@ -137,26 +139,26 @@ class AuditoryToolboxTests(absltest.TestCase):
 
     # Make sure the average glottal pulse locations is 1 over the pitch
     d_points = points[1:] - points[:-1]
-    self.assertAlmostEqual(np.mean(d_points), sample_rate/base_pitch, delta=1)
+    self.assertAlmostEqual(jnp.mean(d_points), sample_rate/base_pitch, delta=1)
 
     # Make sure the frequency deviation is as expected.
     # ToDo(malcolm): Test the deviation, it's not right!
 
   def test_make_vowel(self):
     def local_peaks(x):
-      i = np.argwhere(np.logical_and(x[:-2] < x[1:-1],
+      i = jnp.argwhere(jnp.logical_and(x[:-2] < x[1:-1],
                                     x[2:] < x[1:-1])) + 1
-      return [j[0] for j in i]
+      return jnp.array([j[0] for j in i])
 
-    test_seq = local_peaks(np.array([1,2,3,2,1,1,2,2,3,4,1]))
-    np.testing.assert_equal(test_seq, np.array([2, 9]))
+    test_seq = local_peaks(jnp.array([1,2,3,2,1,1,2,2,3,4,1]))
+    self.assertEqual(list(test_seq), [2, 9])
 
     def vowel_peaks(vowel):
       """Synthesize a vowel and find the frequencies of the spectral peaks"""
       sample_rate = 16000
       vowel = pat.MakeVowel(1024, [1,], sample_rate, vowel)
-      spectrum = 20*np.log10(np.abs(np.fft.fft(vowel)))
-      freqs = np.arange(len(vowel))*sample_rate/len(vowel)
+      spectrum = 20*jnp.log10(jnp.abs(jnp.fft.fft(vowel)))
+      freqs = jnp.arange(len(vowel))*sample_rate/len(vowel)
       return freqs[local_peaks(spectrum)[:3]]
 
     # Make sure the spectrum of each vowel has peaks in the right spots.

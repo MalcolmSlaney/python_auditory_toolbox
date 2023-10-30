@@ -1,4 +1,6 @@
 absl-py
+jax
+jaxlib
 matplotlib
 numpy
 scipy
