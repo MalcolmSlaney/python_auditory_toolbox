@@ -334,9 +334,6 @@ def CorrelogramArray(data, sr=16000, frame_rate=12, width=256):
   for i in range(frame_count):
     start = i*frame_increment
     frame = CorrelogramFrame(data, width, start, frame_increment*4)
-    if movie is None:
-      movie = jnp.zeros((frame_count, frame.shape[0],
-                        frame.shape[1]), dtype=float)
     movie.append(frame)
   return jnp.asarray(movie)
 
