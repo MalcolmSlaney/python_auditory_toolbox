@@ -559,9 +559,7 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   # output.  We do this by multiplying the cepstral data by the transpose
   # of the original DCT matrix.  This all works because we were careful to
   # scale the DCT matrix so it was orthonormal.
-  if True:  # pylint: disable=using-constant-test
-    fbrecon = np.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T, ceps)
-  #	imagesc(mt(:,1:cepstral_coefficients)*mfcc_dct_matrix)
+  fbrecon = np.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T, ceps)
   return ceps,freqresp,fb,fbrecon,freqrecon
 
 

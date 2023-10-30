@@ -1,11 +1,10 @@
-"""A python port of portions of the Matlab Auditory Toolbox.
+"""A JAX port of portions of the Matlab Auditory Toolbox.
 """
 import math
 
 import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
-# from scipy import signal
 
 from typing import List
 
@@ -186,7 +185,6 @@ def CorrelogramFrame(data: jnp.ndarray, pic_width: int,
     a + b*jnp.cos(2*jnp.pi*(jnp.arange(win_len))/win_len + phi))
 
   pic = jnp.zeros((channels, pic_width), dtype=data.dtype)
-  # f = jnp.zeros((channels, fft_size), dtype=data.dtype)
   f = jnp.hstack((data[:, start:last] * ws[:last-start],
                   jnp.zeros((data.shape[0], fft_size - (last-start)))))
   f = jnp.fft.fft(f, axis=1)
@@ -198,9 +196,6 @@ def CorrelogramFrame(data: jnp.ndarray, pic_width: int,
   pic = jnp.where(jnp.expand_dims(good_rows, axis=-1),
                   pic / jnp.tile(jnp.sqrt(pic[:, :1]), (1, pic_width)),
                   jnp.array([0]))
-  # pic[good_rows,: ] = pic[good_rows, :] / matlib.repmat(
-  #   jnp.sqrt(pic[good_rows, :1]), 1, pic_width)   # Broadcast scaling term
-  # pic[~good_rows, :] = jnp.zeros(pic_width)
 
   return pic
 
@@ -443,7 +438,6 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   log_freqs = linear_freqs[-1] * log_spacing**jnp.arange(1,
                                                                 log_filters+3)
   freqs = jnp.hstack((linear_freqs, log_freqs))
-  # print('freqs:', freqs)
   lower = freqs[:total_filters]
   center = freqs[1:total_filters+1]
   upper = freqs[2:total_filters+2]
@@ -559,7 +553,7 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
     freqresp.append(jnp.expand_dims(fft_mag[:fft_size//2].T, axis=-1))
     fb.append(jnp.expand_dims(ear_mag, axis=-1))
     fbrecon.append(jnp.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T,
-                                 ceps[-1]))
+                              ceps[-1]))
 
     f10 = 10**fbrecon[-1]
     recon = sampling_rate/fft_size * (f10[fri, 0]*(1-frac) +
@@ -575,10 +569,8 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   # output.  We do this by multiplying the cepstral data by the transpose
   # of the original DCT matrix.  This all works because we were careful to
   # scale the DCT matrix so it was orthonormal.
-  if True:  # pylint: disable=using-constant-test
-    fbrecon = jnp.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T, ceps)
-  #	imagesc(mt(:,1:cepstral_coefficients)*mfcc_dct_matrix)
-  return ceps,freqresp,fb,fbrecon,freqrecon
+  fbrecon = jnp.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T, ceps)
+  return ceps, freqresp, fb, fbrecon, freqrecon
 
 
 @jax.jit
@@ -607,6 +599,7 @@ def SignalFilter(b, a, x):
   return y
 
 
+@jax.jit
 def SosFilt(sos, x):
   """Redefine the sosfilt function from scipy.signal.sosfilter.  This version
   only filters over the last dimension.
