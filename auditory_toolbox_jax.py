@@ -38,7 +38,7 @@ def ErbSpace(low_freq: float = 100, high_freq: float = 44100/4,
 
 
 def MakeErbFilters(fs: float, num_channels: int,
-                   low_freq: float) -> jnp.ndarray:
+                   low_freq:float = 20) -> jnp.ndarray:
   """This function computes the filter coefficients for a bank of
   Gammatone filters.  These filters were defined by Patterson and
   Holdworth for simulating the cochlea.
