@@ -38,7 +38,7 @@ def ErbSpace(low_freq: float = 100, high_freq: float = 44100/4,
   return cf_array
 
 
-def MakeErbFilters(fs: float, num_channels: int, 
+def MakeErbFilters(fs: float, num_channels: int,
                    low_freq: float = 20) -> np.ndarray:
   """This function computes the filter coefficients for a bank of
   Gammatone filters.  These filters were defined by Patterson and
