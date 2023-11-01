@@ -1,6 +1,7 @@
 """Code to test the auditory toolbox."""
 from absl.testing import absltest
 import numpy as np
+import scipy
 
 import auditory_toolbox as pat
 
@@ -115,6 +116,21 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertAlmostEqual(np.min(pitch), pitch_center-6, delta=2)
     self.assertAlmostEqual(np.max(pitch), pitch_center+6, delta=2)
     np.testing.assert_array_less(0.8, sal[:40])
+
+    # Now test salience when we add noise
+    n = np.random.randn(sample_len) * np.arange(sample_len)/sample_len
+    un=u + n/4
+
+    low_freq = 60
+    num_chan = 100
+    fcoefs = pat.MakeErbFilters(sample_rate, num_chan, low_freq)
+    coch= pat.ErbFilterBank(un, fcoefs)
+    cor = pat.CorrelogramArray(coch,sample_rate,50,256)
+    [pitch,sal] = pat.CorrelogramPitch(cor,256,22254,100,200)
+
+    lr = scipy.stats.linregress(range(len(sal)), y=sal, alternative='less')
+    self.assertAlmostEqual(lr.slope, -0.012, delta=0.001)
+    self.assertAlmostEqual(lr.rvalue, -0.963, delta=0.02)
 
   def test_mfcc(self):
     # Put a tone into MFCC and make sure it's in the right
