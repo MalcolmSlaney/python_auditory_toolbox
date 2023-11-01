@@ -162,13 +162,8 @@ def ErbFilterBank(x: jnp.ndarray, fcoefs: List[jnp.ndarray]) -> jnp.ndarray:
 
   def ErbKernel(f):
     return SosFilt(f, x)
-  
+
   return jax.vmap(ErbKernel, in_axes=0)(sos)
-  # all_y = []
-  # for c in range(n_chan):
-  #   y = SosFilt(sos[c, :, :], x)
-  #   all_y.append(y)
-  # return jnp.array(all_y)
 
 
 def CorrelogramFrame(data: jnp.ndarray, pic_width: int,
@@ -330,7 +325,7 @@ def MakeVowel(sample_len, pitch, sample_rate, f1=0, f2=0, f3=0):
   return y
 
 
-def CorrelogramArray(data, sr=16000, frame_rate=12, width=256):
+def CorrelogramArray(data:, sr=16000, frame_rate=12, width=256):
   _, sample_len = data.shape
   frame_increment = int(sr/frame_rate)
   frame_count = int((sample_len-width)/frame_increment) + 1
