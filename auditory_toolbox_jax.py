@@ -325,7 +325,8 @@ def MakeVowel(sample_len, pitch, sample_rate, f1=0, f2=0, f3=0):
   return y
 
 
-def CorrelogramArray(data:, sr=16000, frame_rate=12, width=256):
+def CorrelogramArray(data: jnp.ndarray, sr: float = 16000,
+                     frame_rate: int = 12, width: int = 256) -> jnp.ndarray:
   _, sample_len = data.shape
   frame_increment = int(sr/frame_rate)
   frame_count = int((sample_len-width)/frame_increment) + 1
