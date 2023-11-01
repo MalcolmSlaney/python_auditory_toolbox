@@ -345,18 +345,16 @@ def CorrelogramPitch(correlogram, width, sr=22254.54,
   computes the pitch of a correlogram sequence by finding the time lag
   with the largest correlation energy.
   """
+  assert correlogram.ndim == 3
+  width = correlogram.shape[2] # Someday remove this unneeded parameter
 
-  drop_low = int(sr/high_pitch)
-  if low_pitch > 0:
-    drop_high = int(min(width,math.ceil(sr/low_pitch)))
-  else:
-    drop_high = width
-
-  frames = correlogram.shape[0]
+  freqs = sr/jnp.arange(width)  # CF of each lag bin
+  valid_pitch_lags = jnp.logical_and(freqs > low_pitch,
+                                     freqs < high_pitch)
 
   pitch = []
   salience = []
-  for j in range(frames):
+  for j in range(correlogram.shape[0]):
     # Get one frame from the correlogram and compute
     # the sum (as a function of time lag) across all channels.
     summary = jnp.sum(correlogram[j, :, :], axis=0)
@@ -368,24 +366,24 @@ def CorrelogramPitch(correlogram, width, sr=22254.54,
     window_length = 16
     sumfilt = jnp.convolve(summary, jnp.ones(window_length)/window_length,
                            'same')
-    sumdif = sumfilt[1:width] - sumfilt[:width-1]
-    sumdif = sumdif * (jnp.arange(summary.shape[-1]-1) >= window_length)
-    valleys = jnp.argwhere(sumdif>0)
-    i = jnp.arange(summary.shape[0])
-    summary = jnp.where(jnp.logical_or(i == valleys[0, 0],
-                                       jnp.logical_or(i < drop_low,
-                                                      i > drop_high)),
-                        jnp.zeros(summary.shape[0]),
-                        summary)
+
+    # Find the local maximums in the filtered summary correlogram.
+    local_peak = jnp.logical_and(sumfilt[1:-1] > sumfilt[0:-2],
+                                 sumfilt[1:-1] > sumfilt[2:])
+    local_peak = jnp.hstack((0, local_peak, 0))
+    peaks = jnp.where(jnp.logical_and(local_peak,
+                                      valid_pitch_lags),
+                      summary,
+                      0*summary)
     # Now find the location of the biggest peak and call this the pitch
-    p = jnp.argmax(summary)
-    if p > 0:
-      pitch.append(sr/float(p))
-    else:
-      pitch.append(0)
+    p = jnp.argmax(peaks)
+    pitch.append(jnp.where(p > 0,
+                           freqs[p],
+                           0))
     salience.append(summary[p]/zero_lag)
 
   return jnp.array(pitch), jnp.array(salience)
+
 
 def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   """Mfcc - Mel frequency cepstrum coefficient analysis.

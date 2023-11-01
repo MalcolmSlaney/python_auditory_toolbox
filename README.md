@@ -2,8 +2,8 @@
 
 This is a Python port of (portions of) the 
 [Matlab Auditory Toolbox](https://engineering.purdue.edu/~malcolm/interval/1998-010/). 
-This package provides code for both the [Numpy](https://numpy.org/doc/stable/index.html) 
-and [JAX](https://jax.readthedocs.io/en/latest/notebooks/quickstart.html) libraries.
+This package provides code built upon both the [Numpy](https://numpy.org/doc/stable/index.html) 
+and [JAX](https://jax.readthedocs.io/en/latest/notebooks/quickstart.html) numerical libraries.
 
 The Python Auditory toolbox includes these functions from the original in Matlab:
 - Patternson-Holdworth ERB (Gammatone) Filter Bank
