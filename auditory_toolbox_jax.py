@@ -160,11 +160,15 @@ def ErbFilterBank(x: jnp.ndarray, fcoefs: List[jnp.ndarray]) -> jnp.ndarray:
                   jnp.stack([b2, b2, b2, b2], axis=1)),
                 axis=2)
 
-  all_y = []
-  for c in range(n_chan):
-    y = SosFilt(sos[c, :, :], x)
-    all_y.append(y)
-  return jnp.array(all_y)
+  def ErbKernel(f):
+    return SosFilt(f, x)
+  
+  return jax.vmap(ErbKernel, in_axes=0)(sos)
+  # all_y = []
+  # for c in range(n_chan):
+  #   y = SosFilt(sos[c, :, :], x)
+  #   all_y.append(y)
+  # return jnp.array(all_y)
 
 
 def CorrelogramFrame(data: jnp.ndarray, pic_width: int,
