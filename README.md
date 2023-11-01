@@ -44,7 +44,8 @@ We can invert these steps to reconstruct the original filterbank representation
 And then the reconstruct the original spectrogram.
 ![Reconstruction of spectrogram](examples/TapestryReconstruction.png)
 
-Note, in particular, the pitch harmonics (the horizontal banding) have been filtered out by the cepstral processing.
+Note, in particular, the pitch harmonics (the horizontal banding) have been 
+filtered out by the cepstral processing.
 
 
 ## Authors
