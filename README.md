@@ -33,7 +33,8 @@ that demonstrate the correlogram representation.
 or via [YouTube](https://youtu.be/kTqhfxHPcVo)
 
 MFCC (mel-frequency cepstral coefficients) is a classic speech representation
-that was often used in (pre-DNN) speech recognizers.  It converts the original spectrogram, shown here, 
+that was often used in (pre-DNN) speech recognizers. 
+It converts the original spectrogram, shown here, 
 ![Original tapestry spectrogram](examples/TapestrySpectrogram.png)
 
 into a 40 channel filterbank.  And finally into a 13-dimensional cepstral representation.  
