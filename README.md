@@ -23,6 +23,13 @@ has been supersceded by [CARFAC](https://github.com/google/carfac).
 [This colab](https://colab.research.google.com/drive/1JGm24f1kOBl-EmtscJck58LGgWkfWGO8#scrollTo=1dB7di7Nv622)
 provides examples of calling (and testing) this libary using the numpy functionality.
 
+A number of people have implemented auditory models using conventional DNN technology.
+This includes Sarah Verhult's ([Hearing Technology Lab on GitHub](https://github.com/HearingTechnology)) 
+and Josh McDermott's ([Model Metamers Paper](https://www.nature.com/articles/s41593-023-01442-0)) labs.
+This toolbox takes a different approach, implementing the original biophysical model using
+JAX. We are interested in whether this physically plausible approach will lead to more realistic models
+with better explanations of what is changing as we optimize to match different psychoacoustic tests.
+
 ## Examples
 Here are the frequency responses for a 10-channel ERB gammatone filtebank.
 ![Gammatone (ERB) Filter Reponse](examples/GammatoneFilterResponse.png)
