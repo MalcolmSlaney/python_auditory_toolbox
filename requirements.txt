@@ -4,3 +4,5 @@ jaxlib
 matplotlib
 numpy
 scipy
+torch
+torchaudio
