@@ -2,8 +2,10 @@
 
 This is a Python port of (portions of) the 
 [Matlab Auditory Toolbox](https://engineering.purdue.edu/~malcolm/interval/1998-010/). 
-This package provides code built upon both the [Numpy](https://numpy.org/doc/stable/index.html), 
-[PyTorch](https://pytorch.org/) and [JAX](https://jax.readthedocs.io/en/latest/notebooks/quickstart.html) 
+This package provides code built upon the 
+[Numpy](https://numpy.org/doc/stable/index.html), 
+[PyTorch](https://pytorch.org/), and 
+[JAX](https://jax.readthedocs.io/en/latest/notebooks/quickstart.html) 
 numerical libraries.
 
 The Python Auditory toolbox includes these functions from the original in Matlab:
@@ -57,7 +59,8 @@ filtered out by the cepstral processing.
 
 ## Examples: PyTorch
 The following code block demonstrates a feature extraction scheme that involves a 
-64-channel ERB gammatone filterbank. The output features are shown below.
+64-channel ERB gammatone filterbank. While the Numpy and JAX versions mimic the original
+Matlab API, the PyTorch version defines a class. The output features are shown below.
 
 ```python
 import torch
@@ -91,5 +94,5 @@ plt.imshow(pipeline.forward(wav).squeeze(), aspect='auto', cmap='Blues')
 
 
 ## Authors
-Malcolm Slaney (malcolm@ieee.org)
+Malcolm Slaney (malcolm@ieee.org) and
 Søren A. Fuglsang (sorenaf@drcmr.dk)

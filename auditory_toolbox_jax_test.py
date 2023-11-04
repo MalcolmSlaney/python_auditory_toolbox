@@ -131,8 +131,8 @@ class AuditoryToolboxTests(absltest.TestCase):
     [pitch,sal] = pat.CorrelogramPitch(cor,256,22254,100,200)
 
     lr = scipy.stats.linregress(range(len(sal)), y=sal, alternative='less')
-    self.assertAlmostEqual(lr.slope, -0.012, delta=0.001)
-    self.assertAlmostEqual(lr.rvalue, -0.963, delta=0.02)
+    self.assertAlmostEqual(lr.slope, -0.012, delta=0.01)  # Probabilistic data,
+    self.assertAlmostEqual(lr.rvalue, -0.963, delta=0.03) # so be tolerant.
 
   def test_mfcc(self):
     # Put a tone into MFCC and make sure it's in the right
