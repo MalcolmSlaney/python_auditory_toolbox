@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Code to test the auditory toolbox."""
 
 from absl.testing import absltest
@@ -7,7 +5,6 @@ import torch
 import torch.fft
 import numpy as np
 import auditory_toolbox_torch as pat
-
 
 class AuditoryToolboxTests(absltest.TestCase):
   """Test cases for the filterbank."""
@@ -36,7 +33,7 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertLen(fcoefs, 10)
     # Test all the filter coefficient array shapes
     a0, a11, a12, a13, a14, a2, b0, b1, b2, gain = fcoefs
-
+    self.assertLen(fcoefs, 10)
     self.assertEqual(a0.numpy().shape, (num_chan, 1))
     self.assertEqual(a11.numpy().shape, (num_chan, 1))
     self.assertEqual(a12.numpy().shape, (num_chan, 1))
@@ -50,36 +47,34 @@ class AuditoryToolboxTests(absltest.TestCase):
 
   def test_erb_filterbank_peaks(self):
     """Test peaks."""
+
+
     impulse_len = 512
     x = torch.zeros(1, impulse_len, dtype=torch.float64)
     x[:, 0] = 1.0
 
-    m = pat.ErbFilterBank(
-        sampling_rate=16000, num_channels=10, lowest_frequency=100)
-    y = m(x)
-    y = y.detach().numpy()
+    fbank = pat.ErbFilterBank(sampling_rate=16000,
+                              num_channels=10,
+                              lowest_frequency=100)
+    y = fbank(x).numpy()
+
     self.assertEqual(y.shape, (1, 10, impulse_len))
     self.assertAlmostEqual(np.max(y), 0.10657410, delta=0.01)
 
     resp = 20 * np.log10(np.abs(np.fft.fft(y, axis=-1)))
-    # Test to make sure spectral peaks are in the right place for each
-    # channel
+    resp = resp.squeeze()
+
+    # Test to make sure spectral peaks are in the right place for each channel
     matlab_peak_locs = [184, 132, 94, 66, 46, 32, 21, 14, 8, 4]
-    python_peak_locs = np.argmax(
-        resp[..., : impulse_len // 2], axis=-1).squeeze()
+    python_peak_locs = np.argmax(resp[:, :impulse_len // 2], axis=-1)
     np.testing.assert_equal(matlab_peak_locs, python_peak_locs+1)
 
-    self.assertEqual(resp.shape, torch.Size([1, 10, 512]))
-    self.assertEqual(
-        list(python_peak_locs.squeeze() + 1), matlab_peak_locs
-    )
+    self.assertEqual(resp.shape, torch.Size([10, 512]))
+    self.assertEqual(list(python_peak_locs+1), matlab_peak_locs)
 
-    matlab_temporal_peak_locs = [12, 13, 23, 32, 46, 51, 77, 122, 143, 164]
-    python_temporal_peak_locs = np.argmax(y, axis=-1)
-    self.assertEqual(
-        list(python_temporal_peak_locs.squeeze() +
-             1), matlab_temporal_peak_locs
-    )
+    matlab_out_peak_locs = [12, 13, 23, 32, 46, 51, 77, 122, 143, 164]
+    python_out_peak_locs = np.argmax(y.squeeze(), axis=-1)
+    self.assertEqual(list(python_out_peak_locs + 1), matlab_out_peak_locs)
 
   def test_fm_points(self):
     """Test fm points"""
@@ -91,8 +86,8 @@ class AuditoryToolboxTests(absltest.TestCase):
 
     # Make sure the average glottal pulse locations is 1 over the pitch
     d_points = points[1:] - points[:-1]
-    self.assertAlmostEqual(np.mean(d_points.numpy()),
-                           sample_rate/base_pitch, delta=1)
+    d_points = d_points.numpy()
+    self.assertAlmostEqual(np.mean(d_points),sample_rate/base_pitch, delta=1)
 
   def test_make_vowel(self):
     """Test make vowels."""
@@ -133,89 +128,198 @@ class AuditoryToolboxTests(absltest.TestCase):
     x2 = torch.zeros(1, 512, dtype=torch.float64)
     x2[0, 0] = 1.0
 
-    m = pat.ErbFilterBank(
-        sampling_rate=16000, num_channels=10, lowest_frequency=100)
+    fbank = pat.ErbFilterBank(sampling_rate=16000,
+                              num_channels=10,
+                              lowest_frequency=100)
 
-    y1 = m(x1)
-    y2 = m(x2)
+    y1 = fbank(x1).numpy()
+    y2 = fbank(x2).numpy()
 
-    assert np.isclose(y1.detach().numpy(), y2.detach().numpy()).all()
+    assert np.isclose(y1,y2).all()
     self.assertEqual(list(y1.shape), [64, 10, 512])
     self.assertEqual(list(y2.shape), [1, 10, 512])
-    self.assertAlmostEqual(
-        torch.sum(torch.abs((y1 - y2))), torch.tensor(0.0)
-    )
+    self.assertAlmostEqual(np.abs(y1-y2).mean(), 0.0)
 
-    y = m(torch.zeros(5, 2, 3, 10000, dtype=torch.float64))
+    x = torch.zeros(5, 2, 3, 10000, dtype=torch.float64)
+    y = fbank(x)
     self.assertEqual(list(y.shape), [5, 2, 3, 10, 10000])
 
   def test_erb_filterbank_dtype(self):
     """Test data type."""
     x = torch.rand(5, 2, 3, 1000, dtype=torch.float32)
-    m = pat.ErbFilterBank(
-        sampling_rate=44100, num_channels=10, lowest_frequency=100
-    )
-    m.to(dtype=torch.float32)
-    y = m(x)
+    fbank = pat.ErbFilterBank(sampling_rate=44100,
+                              num_channels=10,
+                              lowest_frequency=100)
+    fbank.to(dtype=torch.float32)
+    y = fbank(x)
+    self.assertEqual(list(y.shape), [5, 2, 3, 10, 1000])
+
+    fbank = pat.ErbFilterBank(sampling_rate=44100,
+                              num_channels=10,
+                              lowest_frequency=100,
+                              dtype = torch.float32)
+    y = fbank(x)
     self.assertEqual(list(y.shape), [5, 2, 3, 10, 1000])
 
   def test_erb_filterbank_num_channels(self):
     """Test shapes with different number of channels."""
     x = torch.randn(64, 512, dtype=torch.float64)
 
-    m1 = pat.ErbFilterBank(
-        sampling_rate=16000, num_channels=10, lowest_frequency=100
-    )
-    m2 = pat.ErbFilterBank(
-        sampling_rate=16000, num_channels=32, lowest_frequency=100
-    )
-    m3 = pat.ErbFilterBank(
-        sampling_rate=16000, num_channels=64, lowest_frequency=100
-    )
+    fbank1 = pat.ErbFilterBank(sampling_rate=16000,
+                               num_channels=10,
+                               lowest_frequency=100)
+    fbank2 = pat.ErbFilterBank(sampling_rate=16000,
+                               num_channels=32,
+                               lowest_frequency=100)
+    fbank3 = pat.ErbFilterBank(sampling_rate=16000,
+                               num_channels=64,
+                               lowest_frequency=100)
 
-    self.assertEqual(list(m1(x).shape), [64, 10, 512])
-    self.assertEqual(list(m2(x).shape), [64, 32, 512])
-    self.assertEqual(list(m3(x).shape), [64, 64, 512])
+    self.assertEqual(list(fbank1(x).shape), [64, 10, 512])
+    self.assertEqual(list(fbank2(x).shape), [64, 32, 512])
+    self.assertEqual(list(fbank3(x).shape), [64, 64, 512])
 
   def test_make_vowels_peaks_i(self):
     """Test peaks /i/"""
     wav_len = 8000
-    loc = np.zeros(4)
+    loc = np.zeros(4, dtype=np.int16)
     for p, pitch in enumerate([50., 100., 512., 1024.]):
-      y = pat.make_vowel(wav_len, pitch, sample_rate=16000,
-                         f='i').numpy()
+      y = pat.make_vowel(wav_len, pitch, sample_rate=16000, f='i').numpy()
       y = y - np.mean(y)
       y_fft = np.fft.fft(y)
       loc[p] = np.argmax(20*np.log10(np.abs(y_fft[:wav_len//2])))
 
-    self.assertEqual(list(loc.astype(np.int16)+1), [126, 151, 257, 1537])
+    self.assertEqual(list(loc+1), [126, 151, 257, 1537])
 
   def test_make_vowels_peaks_u(self):
     """Test peaks /u/"""
     wav_len = 8000
-    loc = np.zeros(4)
+    loc = np.zeros(4, dtype=np.int16)
     for p, pitch in enumerate([50., 100., 512., 1024.]):
-      y = pat.make_vowel(wav_len, pitch, sample_rate=16000,
-                         f='u').numpy()
+      y = pat.make_vowel(wav_len, pitch, sample_rate=16000, f='u').numpy()
       y = y - np.mean(y)
       y_fft = np.fft.fft(y)
       loc[p] = np.argmax(20*np.log10(np.abs(y_fft[:wav_len//2])))
 
-    self.assertEqual(list(loc.astype(np.int16)+1), [151, 151, 257, 513])
+    self.assertEqual(list(loc+1), [151, 151, 257, 513])
 
   def test_make_vowels_peaks_a(self):
     """Test peaks /a/"""
     wav_len = 8000
-    loc = np.zeros(4)
+    loc = np.zeros(4, dtype=np.int16)
     for p, pitch in enumerate([50., 100., 512., 1024.]):
-      y = pat.make_vowel(wav_len, pitch, sample_rate=16000,
-                         f='a').numpy()
+      y = pat.make_vowel(wav_len, pitch, sample_rate=16000, f='a').numpy()
       y = y - np.mean(y)
       y_fft = np.fft.fft(y)
       loc[p] = np.argmax(20*np.log10(np.abs(y_fft[:wav_len//2])))
 
-    self.assertEqual(list(loc.astype(np.int16)+1), [376, 351, 513, 513])
+    self.assertEqual(list(loc+1), [376, 351, 513, 513])
 
+  def test_correlogram_array(self):
+    """Test correlogram_frame."""
+    test_impulses = torch.zeros((1, 1024), dtype=torch.float64)
+    test_impulses[0, range(0, test_impulses.shape[1], 100)] = 1
+
+    test_frame = pat.correlogram_frame(test_impulses, 256, 0, 0)
+    locs = list(torch.where(test_frame > 0.1)[1])
+    self.assertEqual(locs, [0, 100, 200])
+
+    # Now test with cochlear input to correlogram
+    impulse_len = 512
+
+    fbank = pat.ErbFilterBank(sampling_rate=16000,
+                          num_channels=64,
+                          lowest_frequency=100)
+
+    # Make harmonic input signal
+    s = 0
+    pitch_lag = 200
+    for h in range(1, 10):
+      t_vec = torch.arange(impulse_len,dtype=torch.float64)
+      s = s + torch.sin(2*torch.pi*t_vec/pitch_lag*h)
+    s = s.unsqueeze(0)
+    y = fbank(s)
+
+    frame_width = 256
+    frame = pat.correlogram_frame(y, frame_width)
+
+    self.assertEqual(frame.shape, (1, 64, frame_width))
+
+    # Make sure the top channels have no output.
+    # Todo: align with other tests (after fft_size has been settled)
+    # L34: fftSize = 2^(nextpow2(max(picWidth, winLen))+1);
+    no_output = torch.where(torch.sum(torch.abs(frame),dim=-1)<15)[-1]
+    self.assertEqual(list(no_output.numpy()),list(np.arange(36)))
+
+    # Make sure the first peak (after 0 lag) is at the pitch lag
+    summary_correlogram = torch.sum(frame.squeeze(0), 0)
+    summary_correlogram[:20] = 0.
+    self.assertEqual(torch.argmax(summary_correlogram).numpy(), pitch_lag)
+
+  def test_correlogram_pitch(self):
+    """Test correlogram_pitch."""
+    sample_len = 20000
+    sample_rate = 22254
+    pitch_center = 120
+    u = pat.make_vowel(sample_len, pat.fm_points(sample_len, pitch_center),
+                      sample_rate, 'u')
+    u = u.unsqueeze(0)
+    low_freq = 60
+    num_chan = 100
+
+    fbank = pat.ErbFilterBank(sampling_rate=sample_rate,
+                          num_channels=num_chan,
+                          lowest_frequency=low_freq)
+
+
+
+    coch = fbank(u)
+    cor = pat.correlogram_array(coch,sample_rate,50,256)
+
+
+    cor = cor[0]
+    [pitch,sal] = pat.correlogram_pitch(cor, 256, sample_rate,100,200)
+
+    # Make sure center and overall pitch deviation are as expected.
+    self.assertAlmostEqual(torch.mean(pitch).numpy(), pitch_center, delta=2)
+    self.assertAlmostEqual(torch.min(pitch).numpy(), pitch_center-6, delta=2)
+    self.assertAlmostEqual(torch.max(pitch).numpy(), pitch_center+6, delta=2)
+    np.testing.assert_array_less(0.8, sal.numpy()[:40])
+
+    # Now test salience when we add noise
+    grid = torch.arange(sample_len,dtype=torch.float64)
+    n = torch.randn(sample_len, dtype=torch.float64)*grid/sample_len
+    un=u + n/4
+
+    low_freq = 60
+    num_chan = 100
+
+    fbank2 = pat.ErbFilterBank(sampling_rate=sample_rate,
+                          num_channels=num_chan,
+                          lowest_frequency=low_freq)
+
+
+    coch = fbank2(un)
+    cor = pat.correlogram_array(coch,sample_rate,50,256)
+    # Remove first dim
+    cor = cor[0]
+    [pitch,sal] = pat.correlogram_pitch(cor,256,22254,100,200)
+
+    sal = sal.numpy()
+
+
+    # Avoid scipy dependency
+    design = np.ones((len(sal),2))
+    design[:,1] = np.arange(len(sal))
+    lr = np.linalg.lstsq(design,sal[:,None],rcond=None)
+    r_value = np.corrcoef(design[:,1],sal)[0,1]
+
+    self.assertAlmostEqual(lr[0][1][0], -0.012, delta=0.01)
+    self.assertAlmostEqual(r_value, -0.963, delta=0.03)
+
+    # lr = scipy.stats.linregress(range(len(sal)), y=sal, alternative='less')
+    # self.assertAlmostEqual(lr.slope, -0.012, delta=0.01)
+    # self.assertAlmostEqual(lr.rvalue, -0.963, delta=0.03)
 
 if __name__ == '__main__':
   absltest.main()

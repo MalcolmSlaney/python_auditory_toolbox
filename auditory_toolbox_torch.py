@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Nov  1 13:57:56 2023
+"""A PyTorch port of portions of the Matlab Auditory Toolbox.
 """
 import math
 from typing import List, Optional
@@ -11,20 +8,22 @@ from torchaudio.functional import lfilter
 
 
 class ErbFilterBank(nn.Module):
-  r"""Applies an Auditory Filterbank to data of dimension of `(..., time)` as
+  """Applies an Auditory Filterbank to data of dimension of `(..., time)` as
   described in the 'Auditory Toolbox - An Efficient Implementation of the
   Patterson-Holdsworth Auditory Filter Bank' by Malcolm Slaney, available on:
   <https://engineering.purdue.edu/~malcolm/interval/1998-010/AuditoryToolboxTechReport.pdf>
 
   Args:
-      num_channels: Number of filters in the filterbank.
-          Default: 64
-      lowest_frequency: Lowest centre frequency in the filterbank.
-          Default: 100
-      sampling_rate: Sampling rate of input.
-          Default: 16000
-      dtype: (Optional) Cast coefficients to dtype after instantiation.
-          Default: None
+  ----------
+    num_channels : int
+      How many channels in the filterbank. Default: 64
+    lowest_frequency : float 
+      The lowest center frequency of the filterbank. Default: 100.
+    sampling_rate : float
+      Sampling rate (in Hz) of the filterbank (needed to determine CFs).
+      Default: 16000
+    dtype: (Optional) 
+      Cast coefficients to dtype after instantiation. Default: None
 
   .. note::
       The implementation does not attempt to account for filtering delays.
@@ -32,9 +31,8 @@ class ErbFilterBank(nn.Module):
       are not mean-centered or zero-padded prior to filtering.
 
   Examples:
-      >>> m = ErbFilterBank(sampling_rate=16000)
-      >>> m = m.to(device=torch.device("cpu"), dtype=torch.float32)
-      >>> assert m.sos.dtype==torch.float32, "This cannot be true"
+      >>> fbank = ErbFilterBank(sampling_rate=16000)
+      >>> fbank = m.to(device=torch.device("cpu"), dtype=torch.float32)
       >>> input = torch.zeros(1,512,dtype=torch.float32)
       >>> input[0,0 ] = 1.
       >>> output = m(input)
@@ -47,9 +45,9 @@ class ErbFilterBank(nn.Module):
 
   def __init__(
           self,
-          sampling_rate: int = 16000,
+          sampling_rate: float = 16000.,
           num_channels: int = 64,
-          lowest_frequency: int = 100,
+          lowest_frequency: float = 100.,
           dtype: Optional[torch.dtype] = None,
   ) -> None:
     super().__init__()
@@ -72,7 +70,7 @@ class ErbFilterBank(nn.Module):
     self.register_buffer('sos', sos)
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
-    r"""Pass audio through the set of filters.
+    """Pass audio through the set of filters.
 
     The code is directly adapted from: 'Auditory Toolbox - An Efficient
     Implementation of the Patterson-Holdsworth Auditory Filter Bank' by
@@ -80,16 +78,19 @@ class ErbFilterBank(nn.Module):
 
     Parameters
     ----------
-        x (Tensor): Tensor of audio of dimension (..., time).
+    x : torch.tensor
+      The input signal of dimension (..., time).
 
     Returns
     -------
-        Tensor: Output signal of dimension (..., num_channels, time).
+    y : torch.tensor: 
+      Output signal of dimension (..., num_channels, time).
+      
     """
     if x.ndim < 2:
-      raise ValueError('The input tensor should have size `(..., time)`')
+      raise TypeError('The input tensor should have size `(..., time)`')
     if x.shape[-1] <= 1:
-      raise ValueError('The input tensor should have size `(..., time)`')
+      raise TypeError('The input tensor should have size `(..., time)`')
     new_dims = [1 for j in list(x.unsqueeze(-2).shape)]
     new_dims[-2] = self.num_channels
 
@@ -110,32 +111,31 @@ class ErbFilterBank(nn.Module):
 def erb_space(low_freq: float = 100,
               high_freq: float = 44100/4,
               n: int = 100) -> torch.Tensor:
-  r"""Compute frequencies uniformly spaced on an erb scale.
+  """Compute frequencies uniformly spaced on an erb scale.
 
   The code is directly adapted from: 'Auditory Toolbox - An Efficient
   Implementation of the Patterson-Holdsworth Auditory Filter Bank' by
   Malcolm Slaney.
 
-  This function computes an array of N frequencies uniformly spaced
-  between high_freq and low_freq on an erb scale. For a definition of erb,
-  see Moore, B. C. J., and Glasberg, B. R. (1983)."Suggested formulae for
-  calculating auditory-filter bandwidths and excitation patterns,"
-  J. Acoust. Soc. Am. 74, 750-753.
+  For a definition of erb, see Moore, B. C. J., and Glasberg, B. R. (1983).
+  "Suggested formulae for calculating auditory-filter bandwidths and
+  excitation patterns," J. Acoust. Soc. Am. 74, 750-753.
 
 
   Parameters
   ----------
-  low_freq : float, optional
-      Lower limit. The default is 100.
-  high_freq : float, optional
-      Upper limit. The default is 44100/4.
-  n : int, optional
-      Number of frequencies. The default is 100.
+  low_freq : float
+    The center frequency in Hz of the lowest channel. The default is 100.
+  high_freq : float
+    The upper limit in Hz of the channel bank.  The center frequency
+    of the highest channel will be below this frequency.
+  n : int
+    Number of channels. The default is 100.
 
   Returns
   -------
   cf_array : torch.Tensor
-      Centre frequencies.
+      An array of center frequencies, equally spaced on the ERB scale.
 
   """
   #  Change the following three parameters if you wish to use a different
@@ -155,19 +155,11 @@ def erb_space(low_freq: float = 100,
 
 def make_erb_filters(fs: float, num_channels: int,
                      low_freq: float) -> List[torch.tensor]:
-  r"""Compute filter coefficients for a bank of Gammatone filters.
+  """Compute filter coefficients for a bank of Gammatone filters.
 
   The code is directly adapted from: 'Auditory Toolbox - An Efficient
   Implementation of the Patterson-Holdsworth Auditory Filter Bank' by
   Malcolm Slaney.
-
-  These filters were defined by Patterson and Holdworth for simulating the
-  cochlea.
-
-  The result is returned as a list of filter coefficients.  Each row
-  of the filter arrays contains the coefficients for four second order
-  filters.  The transfer function for these four filters share the same
-  denominator (poles) but have different numerators (zeros).
 
   The filter bank contains "num_channels" channels that extend from
   half the sampling rate (fs) to "low_freq".  Alternatively, if the
@@ -178,16 +170,16 @@ def make_erb_filters(fs: float, num_channels: int,
   Parameters
   ----------
   fs : float
-      Sampling rate.
+    Sampling rate (in Hz) of the filterbank (needed to determine CFs).
   num_channels : int or list of floats
-      Number of channels or centre frequencies.
+    How many channels in the filterbank.
   low_freq : float
-      Lower limit.
+    The lowest center frequency of the filterbank.
 
   Returns
   -------
   fcoefs : List[torch.tensor]
-      Filter coefficients
+    A list of 11 num_channel-D arrays containing the filter parameters.
 
   """
   t = 1/fs
@@ -260,14 +252,10 @@ def erb_bandwidth(cf: torch.tensor, ear_q: float = 9.26449,
 def prepare_coefficients(fcoefs: List[torch.tensor]) -> torch.tensor:
   r"""Reassemble filter coefficients to realize filters.
 
-  The code is directly adapted from: 'Auditory Toolbox - An Efficient
-  Implementation of the Patterson-Holdsworth Auditory Filter Bank' by
-  Malcolm Slaney
-
   Parameters
   ----------
   fcoefs : List[torch.tensor]
-      Coefficients prepared by make_erb_filters.
+      Coefficients prepared by make_erb_filters. 
 
   Returns
   -------
@@ -297,8 +285,8 @@ def prepare_coefficients(fcoefs: List[torch.tensor]) -> torch.tensor:
 def make_vowel(sample_len: int,
                pitch: float,
                sample_rate: float,
-               f: str) -> torch.Tensor:
-  r"""Synthesize an artificial vowel using formant filters.
+               f) -> torch.Tensor:
+  """Synthesize an artificial vowel using formant filters.
 
   The code is directly adapted from MakeVowel by Malcolm Slaney
 
@@ -321,12 +309,18 @@ def make_vowel(sample_len: int,
   Parameters
   ----------
   sample_len : int
-      Length of sample.
+    How many samples to generate
   pitch : float
-      Pitch frequency
+    Either a single floating point value indidcating a constant
+    pitch (in Hz), or a train of impulses generated by fm_points.
   sample_rate : float
-      Sample rate
+    The sample rate for the output signal (Hz)
   f : string or list
+    Either a vowel spec, one of '/a/', '/i/', or '/u' or a list of
+    (f1, f2, f3) where:
+      f1: Is the frequency of the first formant.
+      f2: Optional 2nd formant frequency
+      f3: Optional 3rd formant frequency
 
   Returns
   -------
@@ -343,6 +337,9 @@ def make_vowel(sample_len: int,
       f1, f2, f3 = (300, 870, 2240)
   elif isinstance(f, list) and len(f) == 3:
     f1, f2, f3 = f[0], f[1], f[2]
+  elif isinstance(f, list) and len(f) == 2:
+    f1, f2 = f[0], f[1]
+    f3 = 0.
   else:
     f1, f2, f3 = 0., 0., 0.
   # GlottalPulses(pitch, fs, sample_len) - Generate a stream of
@@ -387,14 +384,14 @@ def make_vowel(sample_len: int,
 
 
 def glottal_filter(sample_rate, x):
-  r"""Glottal filter"""
+  """Glottal filter"""
   a = math.exp(-250*2*math.pi/sample_rate)
   return lfilter(x, torch.tensor([1, 0, -a*a], dtype=torch.float64),
                  torch.tensor([1, 0, 0], dtype=torch.float64), clamp=False)
 
 
 def formant_filter(f, sample_rate, x):
-  r"""Filter with a formant filter."""
+  """Filter with a formant filter."""
   cft = f/sample_rate
   bw = 50
   q = f/bw
@@ -412,7 +409,7 @@ def fm_points(sample_len: int,
               fm_freq: float = 6.,
               fm_amp: float = None,
               sampling_rate: float = 22050.) -> torch.Tensor:
-  r"""Generate impulse train corresponding to a vibrato.
+  """Generate impulse train corresponding to a vibrato.
 
   The code is directly adapted from FMPoints by Malcolm Slaney
 
@@ -424,20 +421,21 @@ def fm_points(sample_len: int,
   Parameters
   ----------
   sample_len : int
-      Number of samples.
+    How much data to generate, in samples
   freq : float
-      Pitch frequency (Hz)
+    Base frequency of the output signal (Hz)
   fm_freq : float
-      Vibrato frequency (Hz)  (defaults to 6 Hz)
+    Vibrato frequency (in Hz)
   fm_amp : float
-      max change in pitch  (defaults to 5% of freq)
+    Magnitude of the FM deviation (in Hz)
   sampling_rate : float
-      Sample frequency (Hz)
+    Sample rate for the output signal.
 
   Returns
   -------
-  y : torch.Tensor
-      Waveform
+  y : torch.tensor
+    An impulse train, indicating the positive-going zero crossing
+    of the phase funcion.
 
   """
 
@@ -450,3 +448,237 @@ def fm_points(sample_len: int,
     fm_amp/(2*math.pi*fm_freq))*torch.sin(2*math.pi*(fm_freq/freq)*points))
 
   return y
+
+
+
+def correlogram_frame(data: torch.tensor, pic_width: int,
+                      start: int = 0, win_len: int = 0,
+                      dtype: Optional[torch.dtype] = torch.float64,
+                      ) -> torch.tensor:
+  """Generate one frame of a correlogram using FFTs to compute autocorrelation.
+
+  Example:
+  ----------
+      import torch
+      import math
+      c = torch.zeros(20,256,dtype=torch.float64)
+      for j in torch.arange(20,0,-1):
+          t = torch.arange(1,257,dtype=torch.float64)
+          c[j-1,:] = torch.nn.ReLU()(torch.sin(t/256*(21-j)*3*2*math.pi))
+      picture = correlogram_frame(c,128,0,256)
+
+
+  Parameters
+  ----------
+  data : torch.tensor
+    A (num_channel x time) or (..., num_channel x time) array of input
+    waveforms, one time domain signal per channel.
+  pic_width : int
+    Number of pixels (time lags) in the final correlogram frame.
+  start : int
+    The starting sample
+  win_len : int
+    How much data to take from the input signal when computing the
+    autocorrelation.
+  dtype : Optional[torch.dtype], optional
+    The default is torch.float64.
+
+  Returns
+  -------
+  pic : torch.tensor
+    An array of size (num_channels x pic_width) containing one
+    frame of the correlogram. If input has size (..., num_channel x time) then
+    output will be of size (..., num_channels x pic_width).
+
+  """
+  input_dimensions = list(data.shape)
+  data_len = input_dimensions[-1]
+  if not win_len:
+    win_len = data_len
+
+  fft_size = int(2**(math.ceil(math.log2(max(pic_width, win_len)))+1))
+  start = max(0, start)
+  last = min(data_len, start+win_len)
+
+  # Generate a window that is win_len long
+  a = .54
+  b = -.46
+  wr = math.sqrt(64/256)
+  phi = math.pi/win_len
+  ws = 2*wr/math.sqrt(4*a*a+2*b*b)*(
+    a + b*torch.cos(2*math.pi*(torch.arange(win_len, dtype=dtype))/win_len
+                    + phi))
+
+  # Intialize output
+  output_dimensions =  list(data.shape)
+  output_dimensions[-1] = fft_size
+  f = torch.zeros(output_dimensions, dtype=dtype)
+
+  f[..., :(last-start)] = data[..., start:last] * ws[:(last-start)]
+  # pylint: disable=not-callable
+  f = torch.fft.fft(f, axis=-1)
+  # pylint: disable=not-callable
+  f = torch.fft.ifft(f * torch.conj(f), axis=-1)
+
+  # Output pic
+  pic = torch.real(f[..., :pic_width])
+
+  # Make sure first column is bigger than the rest
+  good_rows = torch.logical_and((pic[..., 0] > 0),
+                                torch.logical_and((pic[..., 0] > pic[..., 1]),
+                                (pic[..., 0] > pic[..., 2])))
+
+  # Define that pic is normalized by sqrt(pic[...,0]). Define further that
+  # zero entries and bad rows are masked out.
+  norm_factor = torch.zeros_like(pic)
+  norm_factor[good_rows] = 1./torch.sqrt(pic[good_rows][...,[0]])
+  pic = pic * norm_factor
+
+  return pic
+
+
+
+def correlogram_array(data: torch.tensor, sampling_rate: float,
+                     frame_rate: int = 12, width: int = 256,
+                     dtype: Optional[torch.dtype] = torch.float64,
+                     ) -> torch.tensor:
+  """Generate an array of correlogram frames.
+
+  Parameters
+  ----------
+  data : torch.tensor
+    The filterbank's output, size (num_channel x time) or
+    (..., num_channel x time)
+  sampling_rate : float
+    The sample rate for the data (needed when computing the frame times)
+  frame_rate : int
+    How often (in Hz) correlogram frames should be generated.
+  width: int
+    The width (in lags) of the correlogram
+  dtype : Optional[torch.dtype], optional
+    The default is torch.float64.
+
+  Returns
+  -------
+  movie : torch.tensor
+    A (num_frames x num_channels x width) tensor or a
+    (..., num_frames x num_channels x width) tensor of correlogram frames.
+
+  """
+  if data.ndim==2:
+    data = data.unsqueeze(-2)
+  sample_len = data.shape[-1]
+  frame_increment = int(sampling_rate/frame_rate)
+  frame_count = int((sample_len-width)/frame_increment) + 1
+
+  movie = []
+  for i in range(frame_count):
+    start = i*frame_increment
+    frame = correlogram_frame(data,
+                              pic_width = width,
+                              start = start,
+                              win_len = frame_increment*4,
+                              dtype = dtype).unsqueeze(-3)
+    movie.append(frame)
+  movie = torch.cat(movie,dim=-3)
+  return movie
+
+
+
+
+def correlogram_pitch(correlogram: torch.tensor,
+                      width: int = 256,
+                      sr: float = 22254.54,
+                      low_pitch: float = 0.,
+                      high_pitch: float = 20000.,
+                      dtype: Optional[torch.dtype] = torch.float64,
+                      ) -> torch.tensor:
+  """Compute the summary of a correlogram to find the pitch.
+
+  Computes the pitch of a correlogram sequence by finding the time lag
+  with the largest correlation energy.
+
+  The correlogram_pitch function uses optional low_pitch and high_pitch
+  arguments to limit the range of legal pitch values. It is important to
+  note that correlogram_pitch do not include any other higher-level knowledge
+  about pitch. Notably, this work does not enforce any frame-to-frame
+  continuity in the pitch. Each pitch estimate is independent and there
+  is no restriction preventing the estimate to change instantaneously from
+  frame to frame.
+
+  Parameters
+  ----------
+  correlogram : torch.tensor
+    A 3D correlogram array, output from correlogram_array of size
+    (num_frames x num_channels x num_times)
+  width : int
+    Width of the correlogram.  Historical parameter. Should be
+    equal to correlogram.shape[1]. The default is 256
+  sr : float
+    The sample rate. The default is 22254.54.
+  low_pitch : float
+    Lowest allowable pitch (Hz). Pitch peaks are only searched
+    within the region low_pitch to high_pitch. The default is 0.
+  high_pitch : float
+    The default is 20000..
+  dtype : Optional[torch.dtype], optional
+    The default is torch.float64.
+
+  Raises
+  ------
+  TypeError
+    The input data has be of size (num_frames x num_channels x num_times).
+
+  Returns
+  -------
+  pitch : torch.tensor
+    A one-dimensional tensor of length num_frames indicating the pitch
+    or 0 if no pitch is found.
+  salience : torch.tensor
+    A one-dimensional tensor indicating the pitch salience on a scale
+    from 0 (no pitch found) to 1 clear pitch.
+
+  """
+  if not correlogram.ndim == 3:
+    raise TypeError('Input should be (num_frames x num_channels x num_times)')
+
+  drop_low = int(sr/high_pitch)
+  if low_pitch > 0:
+    drop_high = int(min(width, math.ceil(sr/low_pitch)))
+  else:
+    drop_high = width
+
+  frames = correlogram.shape[-3]
+
+  pitch = torch.zeros(frames, dtype=dtype)
+  salience = torch.zeros(frames, dtype=dtype)
+  for j in range(frames):
+    # Get one frame from the correlogram and compute
+    # the sum (as a function of time lag) across all channels.
+    summary = torch.sum(correlogram[j, :, :], axis=0)
+    zero_lag = torch.sum(correlogram[j, :, :], axis=0)[0]
+    # Now we need to find the first pitch past the peak at zero
+    # lag.  The following lines smooth the summary pitch a bit, then
+    # look for the first point where the summary goes back up.
+    # Everything up to this point is zeroed out.
+    window_length = 16
+    b_coefs = torch.ones(window_length, dtype=dtype)
+    a_coefs = torch.zeros(window_length, dtype=dtype)
+    a_coefs[0] = 1.
+    sumfilt = lfilter(summary, a_coefs, b_coefs, clamp=False, batching=True)
+
+    sumdif = sumfilt[..., 1:width] - sumfilt[..., :width-1]
+    sumdif[:window_length] = 0
+    valleys = torch.argwhere(sumdif > 0)
+    summary[:int(valleys[0, 0])] = 0
+    summary[1:drop_low] = 0
+    summary[drop_high:] = 0
+
+    # Now find the location of the biggest peak and call this the pitch
+    p = torch.argmax(summary)
+    if p > 0:
+      pitch[j] = sr/float(p)
+
+    salience[j] = summary[p]/zero_lag
+
+  return pitch, salience
