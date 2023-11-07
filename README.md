@@ -29,8 +29,16 @@ provides examples of calling (and testing) this libary using the numpy functiona
 This toolbox can be used to build biophysically inspired models of the auditory periphery using JAX, 
 PyTorch and Numpy. This can hopefully be used to further develop realistic models with better explanations of 
 what is changing as we optimize to match different psychoacoustic tests. It may further be useful for developing 
-auditory models such as those developed in Sarah Verhulst's ([Hearing Technology Lab on GitHub](https://github.com/HearingTechnology)) 
-and Josh McDermott's ([Model Metamers Paper](https://www.nature.com/articles/s41593-023-01442-0)) labs.
+auditory models such as those developed in Sarah Verhulst's 
+([Hearing Technology Lab on GitHub](https://github.com/HearingTechnology)) 
+and Josh McDermott's 
+([Model Metamers Paper](https://www.nature.com/articles/s41593-023-01442-0)) labs.
+
+## Note
+This package includes three different implementations of the auditory toolbox and the union
+of the three different import requirements. Most users will probably be only using
+one of the three libraries (Numpy, JAX, or Torch), will only need to import one of the 
+auditory_toolbox files, and thus will not need all the prerequisite libraries.
 
 ## Examples
 Here are the frequency responses for a 10-channel ERB gammatone filtebank.
