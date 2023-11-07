@@ -45,6 +45,7 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertEqual(b2.numpy().shape, (num_chan, 1))
     self.assertEqual(gain.numpy().shape, (num_chan, 1))
 
+
   def test_erb_filterbank_peaks(self):
     """Test peaks."""
 
