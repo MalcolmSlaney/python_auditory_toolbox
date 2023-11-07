@@ -1,7 +1,7 @@
 """A PyTorch port of portions of the Matlab Auditory Toolbox.
 """
 import math
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import torch
 from torch import nn
 from torchaudio.functional import lfilter
@@ -78,12 +78,12 @@ class ErbFilterBank(nn.Module):
 
     Parameters
     ----------
-    x : torch.tensor
+    x : torch.Tensor
       The input signal of dimension (..., time).
 
     Returns
     -------
-    y : torch.tensor: 
+    y : torch.Tensor: 
       Output signal of dimension (..., num_channels, time).
       
     """
@@ -154,7 +154,7 @@ def erb_space(low_freq: float = 100,
 
 
 def make_erb_filters(fs: float, num_channels: int,
-                     low_freq: float) -> List[torch.tensor]:
+                     low_freq: float) -> List[torch.Tensor]:
   """Compute filter coefficients for a bank of Gammatone filters.
 
   The code is directly adapted from: 'Auditory Toolbox - An Efficient
@@ -178,7 +178,7 @@ def make_erb_filters(fs: float, num_channels: int,
 
   Returns
   -------
-  fcoefs : List[torch.tensor]
+  fcoefs : List[torch.Tensor]
     A list of 11 num_channel-D arrays containing the filter parameters.
 
   """
@@ -188,19 +188,26 @@ def make_erb_filters(fs: float, num_channels: int,
   else:
     cf = num_channels
 
-  erb = erb_bandwidth(cf)
+  # Change the follow_freqing three parameters if you wish to use a different
+  # erb scale.  Must change in ErbSpace too.
+  ear_q = 9.26449				#  Glasberg and Moore Parameters
+  min_bw = 24.7
+  order = 1
+
+  erb = ((cf/ear_q)**order + min_bw**order)**(1/order)
+
   b = 1.019*2*math.pi*erb
 
-  a11 = (-2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) + 2 *
+  a11 = -(2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) + 2 *
          math.sqrt(3 + 2**1.5) * t * torch.sin(2 * cf * math.pi * t) /
          torch.exp(b * t)) / 2
-  a12 = (-2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) - 2 *
+  a12 = -(2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) - 2 *
          math.sqrt(3 + 2**1.5) * t * torch.sin(2 * cf * math.pi * t) /
          torch.exp(b * t)) / 2
-  a13 = (-2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) + 2 *
+  a13 = -(2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) + 2 *
          math.sqrt(3 - 2**1.5) * t * torch.sin(2 * cf * math.pi * t) /
          torch.exp(b * t)) / 2
-  a14 = (-2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) - 2 *
+  a14 = -(2 * t * torch.cos(2 * cf * math.pi * t) / torch.exp(b * t) - 2 *
          math.sqrt(3 - 2**1.5) * t * torch.sin(2 * cf * math.pi * t) /
          torch.exp(b * t)) / 2
 
@@ -236,30 +243,19 @@ def make_erb_filters(fs: float, num_channels: int,
   return fcoefs
 
 
-def erb_bandwidth(cf: torch.tensor, ear_q: float = 9.26449,
-                  min_bw: float = 24.7,
-                  order: float = 1.) -> float:
-  """Returns bandwidth of cochlear channel at a given frequency.
-
-  Default parameters are defined according to Glasberg and Moore
-  """
-
-  erb = ((cf/ear_q)**order + min_bw**order)**(1/order)
-
-  return erb
 
 
-def prepare_coefficients(fcoefs: List[torch.tensor]) -> torch.tensor:
+def prepare_coefficients(fcoefs: List[torch.Tensor]) -> torch.Tensor:
   r"""Reassemble filter coefficients to realize filters.
 
   Parameters
   ----------
-  fcoefs : List[torch.tensor]
+  fcoefs : List[torch.Tensor]
       Coefficients prepared by make_erb_filters. 
 
   Returns
   -------
-  sos : torch.tensor
+  sos : torch.Tensor
       Reassembled coefficients.
 
   """
@@ -339,6 +335,10 @@ def make_vowel(sample_len: int,
     f1, f2, f3 = f[0], f[1], f[2]
   elif isinstance(f, list) and len(f) == 2:
     f1, f2 = f[0], f[1]
+    f3 = 0.
+  elif isinstance(f, list) and len(f) == 1:
+    f1 = f[0]
+    f2 = 0.
     f3 = 0.
   else:
     f1, f2, f3 = 0., 0., 0.
@@ -433,7 +433,7 @@ def fm_points(sample_len: int,
 
   Returns
   -------
-  y : torch.tensor
+  y : torch.Tensor
     An impulse train, indicating the positive-going zero crossing
     of the phase funcion.
 
@@ -444,17 +444,20 @@ def fm_points(sample_len: int,
 
   kmax = int(math.floor(freq*(sample_len/sampling_rate)))
   points = torch.arange(kmax, dtype=torch.float64)
-  y = 1 + (sampling_rate/freq)*(points-(
+
+  # The following is shifted back by one sample relative to FMPoints.m in the
+  # Matlab toolbox.
+  y = (sampling_rate/freq)*(points-(
     fm_amp/(2*math.pi*fm_freq))*torch.sin(2*math.pi*(fm_freq/freq)*points))
 
   return y
 
 
 
-def correlogram_frame(data: torch.tensor, pic_width: int,
+def correlogram_frame(data: torch.Tensor, pic_width: int,
                       start: int = 0, win_len: int = 0,
                       dtype: Optional[torch.dtype] = torch.float64,
-                      ) -> torch.tensor:
+                      ) -> torch.Tensor:
   """Generate one frame of a correlogram using FFTs to compute autocorrelation.
 
   Example:
@@ -470,7 +473,7 @@ def correlogram_frame(data: torch.tensor, pic_width: int,
 
   Parameters
   ----------
-  data : torch.tensor
+  data : torch.Tensor
     A (num_channel x time) or (..., num_channel x time) array of input
     waveforms, one time domain signal per channel.
   pic_width : int
@@ -485,7 +488,7 @@ def correlogram_frame(data: torch.tensor, pic_width: int,
 
   Returns
   -------
-  pic : torch.tensor
+  pic : torch.Tensor
     An array of size (num_channels x pic_width) containing one
     frame of the correlogram. If input has size (..., num_channel x time) then
     output will be of size (..., num_channels x pic_width).
@@ -497,6 +500,8 @@ def correlogram_frame(data: torch.tensor, pic_width: int,
     win_len = data_len
 
   fft_size = int(2**(math.ceil(math.log2(max(pic_width, win_len)))+1))
+
+
   start = max(0, start)
   last = min(data_len, start+win_len)
 
@@ -538,15 +543,15 @@ def correlogram_frame(data: torch.tensor, pic_width: int,
 
 
 
-def correlogram_array(data: torch.tensor, sampling_rate: float,
+def correlogram_array(data: torch.Tensor, sampling_rate: float,
                      frame_rate: int = 12, width: int = 256,
                      dtype: Optional[torch.dtype] = torch.float64,
-                     ) -> torch.tensor:
+                     ) -> torch.Tensor:
   """Generate an array of correlogram frames.
 
   Parameters
   ----------
-  data : torch.tensor
+  data : torch.Tensor
     The filterbank's output, size (num_channel x time) or
     (..., num_channel x time)
   sampling_rate : float
@@ -560,7 +565,7 @@ def correlogram_array(data: torch.tensor, sampling_rate: float,
 
   Returns
   -------
-  movie : torch.tensor
+  movie : torch.Tensor
     A (num_frames x num_channels x width) tensor or a
     (..., num_frames x num_channels x width) tensor of correlogram frames.
 
@@ -586,13 +591,13 @@ def correlogram_array(data: torch.tensor, sampling_rate: float,
 
 
 
-def correlogram_pitch(correlogram: torch.tensor,
+def correlogram_pitch(correlogram: torch.Tensor,
                       width: int = 256,
                       sr: float = 22254.54,
                       low_pitch: float = 0.,
                       high_pitch: float = 20000.,
                       dtype: Optional[torch.dtype] = torch.float64,
-                      ) -> torch.tensor:
+                      ) -> Tuple[torch.Tensor,torch.Tensor]:
   """Compute the summary of a correlogram to find the pitch.
 
   Computes the pitch of a correlogram sequence by finding the time lag
@@ -608,7 +613,7 @@ def correlogram_pitch(correlogram: torch.tensor,
 
   Parameters
   ----------
-  correlogram : torch.tensor
+  correlogram : torch.Tensor
     A 3D correlogram array, output from correlogram_array of size
     (num_frames x num_channels x num_times)
   width : int
@@ -631,10 +636,10 @@ def correlogram_pitch(correlogram: torch.tensor,
 
   Returns
   -------
-  pitch : torch.tensor
+  pitch : torch.Tensor
     A one-dimensional tensor of length num_frames indicating the pitch
     or 0 if no pitch is found.
-  salience : torch.tensor
+  salience : torch.Tensor
     A one-dimensional tensor indicating the pitch salience on a scale
     from 0 (no pitch found) to 1 clear pitch.
 
