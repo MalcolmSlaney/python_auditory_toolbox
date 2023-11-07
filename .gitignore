@@ -2,3 +2,8 @@
 **/__pycache__
 .vscode
 **/.DS_Store
+dependency_links.txt
+requires.txt
+PKG-INFO
+SOURCES.txt
+top_level.txt
