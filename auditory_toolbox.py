@@ -215,7 +215,8 @@ def CorrelogramFrame(data: np.ndarray, pic_width: int,
   if not win_len:
     win_len = data_len
 
-  fft_size = int(2**np.ceil(np.log2(max(pic_width, win_len))))
+  # Round up to double the window size, and then the next power of 2.
+  fft_size = int(2**np.ceil(np.log2(2*max(pic_width, win_len))))
 
   start = max(0, start)
   last = min(data_len, start+win_len)
@@ -226,18 +227,17 @@ def CorrelogramFrame(data: np.ndarray, pic_width: int,
   ws = 2*wr/np.sqrt(4*a*a+2*b*b)*(
     a + b*np.cos(2*np.pi*(np.arange(win_len))/win_len + phi))
 
-  pic = np.zeros((channels, pic_width), dtype=data.dtype)
   f = np.zeros((channels, fft_size), dtype=data.dtype)
   f[:, :last-start] = data[:, start:last] * ws[:last-start]
   f = np.fft.fft(f, axis=1)
   f = np.fft.ifft(f*np.conj(f), axis=1)
-  pic = np.real(f[:, :pic_width])
-  good_rows = np.logical_and(  # Make sure first column is bigger than the rest.
-    pic[:, 0] > 0,
-    np.logical_and(pic[:, 0] > pic[:, 1], pic[:, 0] > pic[:, 2]))
-  pic[good_rows,: ] = pic[good_rows, :] / np.tile(
-    np.sqrt(pic[good_rows, :1]), (1, pic_width))   # Broadcast scaling term
-  pic[~good_rows, :] = np.zeros(pic_width)
+  pic = np.maximum(0, np.real(f[:, :pic_width]))
+  good_rows = np.logical_and( # Make sure first column is bigger than the rest.
+      pic[:, 0] > 0,
+      np.logical_and(pic[:, 0] > pic[:, 1], pic[:, 0] > pic[:, 2]))
+  pic = np.where(np.expand_dims(good_rows, axis=-1),
+                  pic / np.tile(np.sqrt(pic[:, :1]), (1, pic_width)),
+                  np.array([0]))
 
   return pic
 

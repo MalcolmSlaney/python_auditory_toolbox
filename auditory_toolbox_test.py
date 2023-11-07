@@ -65,6 +65,11 @@ class AuditoryToolboxTests(absltest.TestCase):
     np.testing.assert_equal(matlab_peak_locs, python_peak_locs+1)
 
   def test_correlogram_array(self):
+    def local_peaks(x):
+      i = np.argwhere(np.logical_and(x[:-2] < x[1:-1],
+                                    x[2:] < x[1:-1])) + 1
+      return [j[0] for j in i]
+
     test_impulses = np.zeros((1,1024))
     test_impulses[0, range(0, test_impulses.shape[1], 100)] = 1
     test_frame = pat.CorrelogramFrame(test_impulses, 256)
@@ -87,15 +92,22 @@ class AuditoryToolboxTests(absltest.TestCase):
     frame_width = 256
     frame = pat.CorrelogramFrame(y, frame_width)
     self.assertEqual(frame.shape, (num_chan, frame_width))
+    self.assertGreaterEqual(np.min(frame), 0.0)
 
     # Make sure the top channels have no output.
-    no_output = np.where(np.sum(frame, 1) < 0.2)
-    np.testing.assert_equal(no_output[0], np.arange(36))
+    spectral_profile = np.sum(frame, 1)
+    no_output = np.where(spectral_profile < 2)
+    np.testing.assert_equal(no_output[0], np.arange(31))
 
-   # Make sure the first peak (after 0 lag) is at the pitch lag
+    # Make sure we have spectral peaks at the right locations
+    spectral_peaks = local_peaks(spectral_profile)
+    self.assertEqual(spectral_peaks, [42, 44, 46, 48, 50, 53, 56, 60])
+
+    # Make sure the first peak (after 0 lag) is at the pitch lag
     summary_correlogram = np.sum(frame, 0)
-    summary_correlogram[:20] = 0
-    self.assertEqual(np.argmax(summary_correlogram), pitch_lag)
+    skip_lags = 100
+    self.assertEqual(np.argmax(summary_correlogram[skip_lags:]) + skip_lags,
+                     pitch_lag)
 
   def test_correlogram_pitch(self):
     sample_len = 20000

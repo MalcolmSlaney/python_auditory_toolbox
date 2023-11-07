@@ -208,11 +208,12 @@ def CorrelogramFrame(data: jnp.ndarray, pic_width: int,
     A two dimensional array, of size num_channels x pic_width, containing one
     frame of the correlogram.
   """
-  channels, data_len = data.shape
+  _, data_len = data.shape
   if not win_len:
     win_len = data_len
 
-  fft_size = int(2**jnp.ceil(jnp.log2(max(pic_width, win_len))))
+  # Round up to double the window size, and then the next power of 2.
+  fft_size = int(2**jnp.ceil(jnp.log2(2*max(pic_width, win_len))))
 
   start = max(0, start)
   last = min(data_len, start+win_len)
@@ -223,12 +224,11 @@ def CorrelogramFrame(data: jnp.ndarray, pic_width: int,
   ws = 2*wr/jnp.sqrt(4*a*a+2*b*b)*(
     a + b*jnp.cos(2*jnp.pi*(jnp.arange(win_len))/win_len + phi))
 
-  pic = jnp.zeros((channels, pic_width), dtype=data.dtype)
   f = jnp.hstack((data[:, start:last] * ws[:last-start],
                   jnp.zeros((data.shape[0], fft_size - (last-start)))))
   f = jnp.fft.fft(f, axis=1)
   f = jnp.fft.ifft(f*jnp.conj(f), axis=1)
-  pic = jnp.real(f[:, :pic_width])
+  pic = jnp.maximum(0, jnp.real(f[:, :pic_width]))
   good_rows = jnp.logical_and( # Make sure first column is bigger than the rest.
       pic[:, 0] > 0,
       jnp.logical_and(pic[:, 0] > pic[:, 1], pic[:, 0] > pic[:, 2]))
