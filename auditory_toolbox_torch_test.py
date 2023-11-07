@@ -218,6 +218,11 @@ class AuditoryToolboxTests(absltest.TestCase):
 
   def test_correlogram_array(self):
     """Test correlogram_frame."""
+    def local_peaks(x):
+      i = np.argwhere(np.logical_and(x[:-2] < x[1:-1],
+                                     x[2:] < x[1:-1])) + 1
+      return [j[0] for j in i]
+
     test_impulses = torch.zeros((1, 1024), dtype=torch.float64)
     test_impulses[0, range(0, test_impulses.shape[1], 100)] = 1
 
@@ -247,15 +252,20 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertEqual(frame.shape, (1, 64, frame_width))
 
     # Make sure the top channels have no output.
-    # Todo: align with other tests (after fft_size has been settled)
-    # L34: fftSize = 2^(nextpow2(max(picWidth, winLen))+1);
-    no_output = torch.where(torch.sum(torch.abs(frame),dim=-1)<15)[-1]
-    self.assertEqual(list(no_output.numpy()),list(np.arange(36)))
+    spectral_profile = torch.sum(frame, dim=-1)
+    no_output = torch.where(spectral_profile < 2)[-1]
+    self.assertEqual(list(no_output.numpy()),list(np.arange(31)))
+
+    # Make sure we have spectral peaks at the right locations
+    spectral_peaks = local_peaks(spectral_profile.numpy()[0])
+    self.assertEqual(spectral_peaks, [42, 44, 46, 48, 50, 53, 56, 60])
 
     # Make sure the first peak (after 0 lag) is at the pitch lag
     summary_correlogram = torch.sum(frame.squeeze(0), 0)
-    summary_correlogram[:20] = 0.
-    self.assertEqual(torch.argmax(summary_correlogram).numpy(), pitch_lag)
+    skip_lags = 100
+    self.assertEqual(torch.argmax(summary_correlogram[skip_lags:]).numpy() +
+                     skip_lags,
+                     pitch_lag)
 
   def test_correlogram_pitch(self):
     """Test correlogram_pitch."""

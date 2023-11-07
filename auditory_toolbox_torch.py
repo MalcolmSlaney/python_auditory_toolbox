@@ -499,8 +499,8 @@ def correlogram_frame(data: torch.Tensor, pic_width: int,
   if not win_len:
     win_len = data_len
 
-  fft_size = int(2**(math.ceil(math.log2(max(pic_width, win_len)))+1))
-
+  # Round up to double the window size, and then the next power of 2.
+  fft_size = int(2**(math.ceil(math.log2(2*max(pic_width, win_len)))))
 
   start = max(0, start)
   last = min(data_len, start+win_len)
@@ -526,7 +526,7 @@ def correlogram_frame(data: torch.Tensor, pic_width: int,
   f = torch.fft.ifft(f * torch.conj(f), axis=-1)
 
   # Output pic
-  pic = torch.real(f[..., :pic_width])
+  pic = torch.maximum(torch.tensor(0.0), torch.real(f[..., :pic_width]))
 
   # Make sure first column is bigger than the rest
   good_rows = torch.logical_and((pic[..., 0] > 0),
