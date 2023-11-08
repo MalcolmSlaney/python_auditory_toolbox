@@ -42,25 +42,29 @@ auditory_toolbox files, and thus will not need all the prerequisite libraries.
 
 ## Examples
 Here are the frequency responses for a 10-channel ERB gammatone filtebank.
-![Gammatone (ERB) Filter Reponse](examples/GammatoneFilterResponse.png)
+
+![Gammatone (ERB) Filter Reponse](python_auditory_toolbox/examples/GammatoneFilterResponse.png)
 
 Here is an example of a correlogram, here with a number of harmonic examples 
 that demonstrate the correlogram representation.
-<video src="examples/DudaVowelsCorrelogram.mp4" controls title="Correlogram Example"></video> 
+<video src="python_auditory_toolbox/examples/DudaVowelsCorrelogram.mp4" controls title="Correlogram Example"></video> 
 or via [YouTube](https://youtu.be/kTqhfxHPcVo)
 
 MFCC (mel-frequency cepstral coefficients) is a classic speech representation
 that was often used in (pre-DNN) speech recognizers. 
 It converts the original spectrogram, shown here, 
-![Original tapestry spectrogram](examples/TapestrySpectrogram.png)
+
+![Original tapestry spectrogram](python_auditory_toolbox/examples/TapestrySpectrogram.png)
 
 into a 40 channel filterbank.  And finally into a 13-dimensional cepstral representation.  
 
 We can invert these steps to reconstruct the original filterbank representation
-![Reconstruction of filterbank representation](examples/TapestryFilterbank.png)
+
+![Reconstruction of filterbank representation](python_auditory_toolbox/examples/TapestryFilterbank.png)
 
 And then the reconstruct the original spectrogram.
-![Reconstruction of spectrogram](examples/TapestryReconstruction.png)
+
+![Reconstruction of spectrogram](python_auditory_toolbox/examples/TapestryReconstruction.png)
 
 Note, in particular, the pitch harmonics (the horizontal banding) have been 
 filtered out by the cepstral processing.
@@ -98,7 +102,7 @@ pipeline.to(dtype=torch.float32)
 fig = plt.figure()
 plt.imshow(pipeline.forward(wav).squeeze(), aspect='auto', cmap='Blues')
 ```
-![Gammatone features](examples/TapestryGammatoneFeatures.png)
+![Gammatone features](python_auditory_toolbox/examples/TapestryGammatoneFeatures.png)
 
 
 ## Authors
