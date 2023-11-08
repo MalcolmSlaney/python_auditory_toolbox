@@ -27,12 +27,23 @@
 # limitations under the License.
 # ==============================================================================
 
+# Malcolm Notes:
+# To create distributions:  python3 -m build
+# To upload distribution: python3 -m twine upload dist/*
+#   Use __token__ as the User name and an API key for the password
+# To test in a new environment: conda create --name test
+# Then: conda activate test
+# Then: pip install python_auditory_toolbox
+# Then: python3
+#   from python_auditory_toolbox import auditory_toolbox_jax as pat
+#   pat.ErbSpace()
+
 """Create the python_auditory_toolbox package files.
 """
 
 import setuptools
 
-with open('README.md', 'r') as fh:
+with open('README.md', 'r', encoding='utf-8') as fh:
   long_description = fh.read()
 
 setuptools.setup(
@@ -40,7 +51,7 @@ setuptools.setup(
   version='1.0.0',
   author='Malcolm Slaney',
   author_email='malcolm@ieee.org',
-  description='Python Auditory Toolbox - Translated from the Matlab Auditory Toolbox',
+  description='Several simple auditory models in JAX, Numpy and Torch',
   long_description=long_description,
   long_description_content_type='text/markdown',
   url='https://github.com/MalcolmSlaney/python_auditory_toolbox',
