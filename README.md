@@ -23,21 +23,35 @@ The Python Auditory toolbox includes these functions from the original in Matlab
 This toolbox does not include Lyon's Passive Long-wave Cochlear model as this model
 has been supersceded by [CARFAC](https://github.com/google/carfac).
 
+All functions are available on top of any of these three computational libraries: 
+[JAX](https://github.com/google/jax), 
+[NumPy](https://numpy.org/) or 
+[PyTorch](https://pytorch.org/).
+
 [This colab](https://colab.research.google.com/drive/1JGm24f1kOBl-EmtscJck58LGgWkfWGO8#scrollTo=1dB7di7Nv622)
-provides examples of calling (and testing) this libary using the numpy functionality.
+provides examples of calling (and testing) this libary using the NumPy functionality.
 
 This toolbox can be used to build biophysically inspired models of the auditory periphery using JAX, 
-PyTorch and Numpy. This can hopefully be used to further develop realistic models with better explanations of 
+PyTorch and NumPy. This can hopefully be used to further develop realistic models with better explanations of 
 what is changing as we optimize to match different psychoacoustic tests. It may further be useful for developing 
 auditory models such as those developed in Sarah Verhulst's 
 ([Hearing Technology Lab on GitHub](https://github.com/HearingTechnology)) 
 and Josh McDermott's 
 ([Model Metamers Paper](https://www.nature.com/articles/s41593-023-01442-0)) labs.
 
+You can include the python_auditory_toolbox in your work in several ways.  Via the Python package installer
+	pip install python_auditory_toolbox
+
+From GitHub at 
+	https://github.com/MalcolmSlaney/python_auditory_toolbox
+
+Or see the toolbox in action (with pretty pictures) via Colab at
+	https://colab.research.google.com/drive/1JGm24f1kOBl-EmtscJck58LGgWkfWGO8?usp=sharing
+
 ## Note
 This package includes three different implementations of the auditory toolbox and the union
 of the three different import requirements. Most users will probably be only using
-one of the three libraries (Numpy, JAX, or Torch), will only need to import one of the 
+one of the three libraries (NumPy, JAX, or PyTorch), will only need to import one of the 
 auditory_toolbox files, and thus will not need all the prerequisite libraries.
 
 ## Examples
@@ -71,7 +85,7 @@ filtered out by the cepstral processing.
 
 ## Examples: PyTorch
 The following code block demonstrates a feature extraction scheme that involves a 
-64-channel ERB gammatone filterbank. While the Numpy and JAX versions mimic the original
+64-channel ERB gammatone filterbank. While the NumPy and JAX versions mimic the original
 Matlab API, the PyTorch version defines a class. The output features are shown below.
 
 ```python

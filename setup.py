@@ -48,7 +48,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setuptools.setup(
   name='python_auditory_toolbox',
-  version='1.0.0',
+  version='1.0.2',
   author='Malcolm Slaney',
   author_email='malcolm@ieee.org',
   description='Several simple auditory models in JAX, Numpy and Torch',
@@ -60,6 +60,7 @@ setuptools.setup(
     'Programming Language :: Python :: 3',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
+    'Topic :: Multimedia :: Sound/Audio :: Analysis',
   ],
   python_requires='>=3.6',
   install_requires=[
