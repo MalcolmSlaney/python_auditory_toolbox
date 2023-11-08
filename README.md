@@ -49,11 +49,14 @@ Or see the toolbox in action (with pretty pictures) via Colab at
 	https://colab.research.google.com/drive/1JGm24f1kOBl-EmtscJck58LGgWkfWGO8?usp=sharing
 
 ## Note
-This package includes three different implementations of the auditory toolbox and the union
+This package includes three different implementations of the auditory toolbox and thus the union
 of the three different import requirements. Most users will probably be only using
 one of the three libraries (NumPy, JAX, or PyTorch), will only need to import one of the 
-auditory_toolbox files, and thus will not need all the prerequisite libraries.
+auditory_toolbox files, and will not need all the prerequisite libraries.
 
+Please cite this work as
+	Malcolm Slaney and Søren Fuglsang, Python Auditory Toolbox, 2023. https://github.com/MalcolmSlaney/python_auditory_toolbox. 
+  
 ## Examples
 Here are the frequency responses for a 10-channel ERB gammatone filtebank.
 
