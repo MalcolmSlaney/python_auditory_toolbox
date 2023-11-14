@@ -39,13 +39,16 @@ auditory models such as those developed in Sarah Verhulst's
 and Josh McDermott's 
 ([Model Metamers Paper](https://www.nature.com/articles/s41593-023-01442-0)) labs.
 
-You can include the python_auditory_toolbox in your work in several ways.  Via the Python package installer
+You can include the python_auditory_toolbox in your work in several ways.  Via the Python package installer:
+
 	pip install python_auditory_toolbox
 
-From GitHub at 
+From GitHub at:
+
 	https://github.com/MalcolmSlaney/python_auditory_toolbox
 
-Or see the toolbox in action (with pretty pictures) via Colab at
+Or see the toolbox in action (with pretty pictures) via Colab at:
+
 	https://colab.research.google.com/drive/1JGm24f1kOBl-EmtscJck58LGgWkfWGO8?usp=sharing
 
 ## Note
@@ -54,7 +57,8 @@ of the three different import requirements. Most users will probably be only usi
 one of the three libraries (NumPy, JAX, or PyTorch), will only need to import one of the 
 auditory_toolbox files, and will not need all the prerequisite libraries.
 
-Please cite this work as
+Please cite this work as:
+
 	Malcolm Slaney and Søren Fuglsang, Python Auditory Toolbox, 2023. https://github.com/MalcolmSlaney/python_auditory_toolbox. 
   
 ## Examples
