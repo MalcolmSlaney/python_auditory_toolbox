@@ -658,3 +658,43 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   # scale the DCT matrix so it was orthonormal.
   fbrecon = np.matmul(mfcc_dct_matrix[:cepstral_coefficients,:].T, ceps)
   return ceps,freqresp,fb,fbrecon,freqrecon
+
+
+def Spectrogram(wave: np.ndarray, 
+                segsize: int = 128, 
+                nlap: int = 8, 
+                ntrans: int = 4) -> np.ndarray:
+  """
+  Compute a pretty spectrogram. Premphasize the audio to preserve the high
+  frequencies, and normalize the result using fourth-root compression to more
+  closely match human perception (both auditory and visual). Original algorithm
+  by Richard F. Lyon.
+
+  Args:
+    wave: The one dimensional signal
+    segsize: How much of the signal to consider for each output frame
+    nlap: is number of hamming windows overlapping a point
+    ntrans: is factor by which transform is bigger than segment
+  
+  Returns:
+     A spectrogram 'array' with fourth root of amplude, filter smoothed and 
+     formatted for display.
+  """
+  wave = signal.lfilter([1, -0.95], [1], wave)
+
+  s = len(wave)
+  nsegs = math.floor(s/(segsize/nlap) - nlap + 1)
+  array = np.zeros((ntrans//2*segsize, nsegs))
+  window = 0.54-0.46*np.cos(2*np.pi/(segsize+1)*(np.arange(segsize)))
+  for i in range(nsegs):
+    seg = np.zeros(ntrans*segsize)  #  leave half full of zeroes
+    start = i*segsize//nlap
+    stop = start + segsize
+    piece = wave[start:stop]
+    seg[:segsize] = window*piece
+    seg = np.abs(np.fft.fft(seg))
+    array[:, i] = seg[:array.shape[0]]  # seg[ntrans/2*segsize:ntrans*segsize]
+  #  compress with square root of amplitude (fourth root of power)
+  off = 0.0001*np.max(array)  #       low end stabilization offset,
+  array = (off+array)**0.25-off**0.25 #  better than a threshold hack!
+  return 255/np.max(array)*array;

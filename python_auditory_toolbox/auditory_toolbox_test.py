@@ -1,4 +1,6 @@
 """Code to test the auditory toolbox."""
+import math
+
 from absl.testing import absltest
 import numpy as np
 import scipy
@@ -199,6 +201,21 @@ class AuditoryToolboxTests(absltest.TestCase):
                                np.array([300, 870, 2240]),
                                atol=bin_width)
 
+  def test_spectrogram(self):
+    fs = 22050
+    t = np.arange(fs)/fs
+    f0 = 900
+    tone = np.sin(2*np.pi*f0*t)
+    segsize = 128
+    ntrans = 4
+    nlap = 8
+    spec = pat.Spectrogram(tone, segsize=segsize, nlap=nlap, ntrans=ntrans)
+    self.assertEqual(spec.shape[0], segsize*ntrans//2)
+    self.assertEqual(spec.shape[1], (len(tone)-segsize)//(segsize//nlap) + 1)
 
+    profile = np.sum(spec, axis=1)
+    self.assertEqual(np.argmax(profile), 
+                     math.floor(f0 / (fs/(segsize*ntrans)) + 0.5))
+    
 if __name__ == '__main__':
   absltest.main()
