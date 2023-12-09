@@ -660,9 +660,9 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   return ceps,freqresp,fb,fbrecon,freqrecon
 
 
-def Spectrogram(wave: np.ndarray, 
-                segsize: int = 128, 
-                nlap: int = 8, 
+def Spectrogram(wave: np.ndarray,
+                segsize: int = 128,
+                nlap: int = 8,
                 ntrans: int = 4) -> np.ndarray:
   """
   Compute a pretty spectrogram. Premphasize the audio to preserve the high
@@ -697,4 +697,4 @@ def Spectrogram(wave: np.ndarray,
   #  compress with square root of amplitude (fourth root of power)
   off = 0.0001*np.max(array)  #       low end stabilization offset,
   array = (off+array)**0.25-off**0.25 #  better than a threshold hack!
-  return 255/np.max(array)*array;
+  return 255/np.max(array)*array

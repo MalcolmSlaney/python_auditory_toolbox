@@ -214,8 +214,8 @@ class AuditoryToolboxTests(absltest.TestCase):
     self.assertEqual(spec.shape[1], (len(tone)-segsize)//(segsize//nlap) + 1)
 
     profile = np.sum(spec, axis=1)
-    self.assertEqual(np.argmax(profile), 
+    self.assertEqual(np.argmax(profile),
                      math.floor(f0 / (fs/(segsize*ntrans)) + 0.5))
-    
+
 if __name__ == '__main__':
   absltest.main()
