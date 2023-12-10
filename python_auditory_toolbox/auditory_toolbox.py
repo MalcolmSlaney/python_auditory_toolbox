@@ -663,7 +663,8 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
 def Spectrogram(wave: np.ndarray,
                 segsize: int = 128,
                 nlap: int = 8,
-                ntrans: int = 4) -> np.ndarray:
+                ntrans: int = 4,
+                normalize: bool = False) -> np.ndarray:
   """
   Compute a pretty spectrogram. Premphasize the audio to preserve the high
   frequencies, and normalize the result using fourth-root compression to more
@@ -675,7 +676,7 @@ def Spectrogram(wave: np.ndarray,
     segsize: How much of the signal to consider for each output frame
     nlap: is number of hamming windows overlapping a point
     ntrans: is factor by which transform is bigger than segment
-  
+    normalize: Whether to normalize & compress the output for display.
   Returns:
      A spectrogram 'array' with fourth root of amplude, filter smoothed and 
      formatted for display.
@@ -694,7 +695,9 @@ def Spectrogram(wave: np.ndarray,
     seg[:segsize] = window*piece
     seg = np.abs(np.fft.fft(seg))
     array[:, i] = seg[:array.shape[0]]  # seg[ntrans/2*segsize:ntrans*segsize]
-  #  compress with square root of amplitude (fourth root of power)
-  off = 0.0001*np.max(array)  #       low end stabilization offset,
-  array = (off+array)**0.25-off**0.25 #  better than a threshold hack!
-  return 255/np.max(array)*array
+  if normalize:
+    #  compress with square root of amplitude (fourth root of power)
+    off = 0.0001*np.max(array)  #       low end stabilization offset,
+    array = (off+array)**0.25-off**0.25 #  better than a threshold hack!
+    array =  255/np.max(array)*array
+  return array
