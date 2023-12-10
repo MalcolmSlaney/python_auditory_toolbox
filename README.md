@@ -19,6 +19,7 @@ The Python Auditory toolbox includes these functions from the original in Matlab
 - Demonstrations
   - MakeVowel
   - FMPoints 
+  - Spectrogram
 
 This toolbox does not include Lyon's Passive Long-wave Cochlear model as this model
 has been supersceded by [CARFAC](https://github.com/google/carfac).
