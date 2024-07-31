@@ -179,7 +179,7 @@ def make_erb_filters(fs: float, num_channels: int,
   Returns
   -------
   fcoefs : List[torch.Tensor]
-    A list of 11 num_channel-D arrays containing the filter parameters.
+    A list of 10 num_channel-D arrays containing the filter parameters.
 
   """
   t = 1/fs

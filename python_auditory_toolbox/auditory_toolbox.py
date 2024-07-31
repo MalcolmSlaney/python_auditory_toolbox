@@ -162,7 +162,7 @@ def ErbFilterBank(x: np.ndarray, fcoefs: List[np.ndarray]) -> np.ndarray:
   
   Args:
     x: The input signal, one-dimensional
-    fcoefs: A list of 11 num-channel-dimensional arrays that describe the 
+    fcoefs: A list of 10 num-channel-dimensional arrays that describe the 
       filterbank.
   
   Returns:
