@@ -324,6 +324,7 @@ def make_vowel(sample_len: int,
       Waveform
 
   """
+  f1, f2, f3 = 0., 0., 0.  # Keep Lint happy by setting defaults first.
   if isinstance(f, str):
     if f in ['a', '/a/']:
       f1, f2, f3 = (730, 1090, 2440)
@@ -340,8 +341,6 @@ def make_vowel(sample_len: int,
     f1 = f[0]
     f2 = 0.
     f3 = 0.
-  else:
-    f1, f2, f3 = 0., 0., 0.
   # GlottalPulses(pitch, fs, sample_len) - Generate a stream of
   # glottal pulses with the given pitch (in Hz) and sampling
   # frequency (sample_rate).  A vector of the requested length is

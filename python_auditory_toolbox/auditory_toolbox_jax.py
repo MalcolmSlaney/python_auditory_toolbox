@@ -608,20 +608,19 @@ def Mfcc(input_signal, sampling_rate=16000, frame_rate=100, debug=False):
   # we want to know the exact position in the filter bank to find
   # the original frequency response.  The next block of code finds the
   # integer and fractional sampling positions.
-  if True:  # pylint: disable=using-constant-test
-    fr = jnp.arange(fft_size//2)/(fft_size/2)*sampling_rate/2
-    j = 0
-    for i in jnp.arange(fft_size//2):
-      if fr[i] > center[j+1]:
-        j = j + 1
-      j = min(j, total_filters-2)
-      # if j > total_filters-2:
-      #   j = total_filters-1
-      fr = fr.at[i].set(min(total_filters-1-.0001,
-                            max(0,j + (fr[i]-center[j])/(center[j+1]-
-                                                         center[j]))))
-    fri = fr.astype(int)
-    frac = fr - fri
+  fr = jnp.arange(fft_size//2)/(fft_size/2)*sampling_rate/2
+  j = 0
+  for i in jnp.arange(fft_size//2):
+    if fr[i] > center[j+1]:
+      j = j + 1
+    j = min(j, total_filters-2)
+    # if j > total_filters-2:
+    #   j = total_filters-1
+    fr = fr.at[i].set(min(total_filters-1-.0001,
+                          max(0,j + (fr[i]-center[j])/(center[j+1]-
+                                                        center[j]))))
+  fri = fr.astype(int)
+  frac = fr - fri
 
   freqrecon = []
   fbrecon = []
