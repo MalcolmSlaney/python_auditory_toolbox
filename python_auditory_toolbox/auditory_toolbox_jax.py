@@ -91,7 +91,7 @@ def MakeErbFilters(fs: float, num_channels: int,
     low_freq: The lowest center frequency of the filterbank.
 
   Returns: 
-    A list of 11 num_channel-D arrays containing the filter parameters.
+    A list of 10 num_channel-D arrays containing the filter parameters.
   """
 
   t = 1/fs
